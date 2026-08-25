@@ -457,12 +457,20 @@ enum SubscriptionStatus {
   cancelled
 }
 
+enum PlanTier {
+  basic
+  pro
+  premium
+}
+
 model PlatformSubscription {
   id       String @id @default(uuid())
   tenantId String @unique
 
   stripeCustomerId     String?  @unique
   stripeSubscriptionId String?  @unique
+  stripePriceId        String?
+  plan                 PlanTier @default(basic)
   status               SubscriptionStatus @default(incomplete)
   setupFeePaid         Boolean  @default(false)
   currentPeriodEnd     DateTime?

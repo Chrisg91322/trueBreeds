@@ -25,6 +25,8 @@ import {
   markOnboardingStep,
   publishTenant,
 } from "@/lib/actions/onboarding";
+import { PricingCards } from "@/components/site/pricing-cards";
+import { formatPlanPrice, getPlan, isPlanTier, type PlanTier } from "@/lib/plans";
 
 const STEPS = [
   { key: "billing", label: "Billing" },
@@ -42,10 +44,12 @@ export function OnboardingWizard({
   tenant,
   progress,
   initialStep,
+  initialPlan,
 }: {
   tenant: Tenant;
   progress: OnboardingProgress;
   initialStep?: string;
+  initialPlan?: string;
 }) {
   const firstIncomplete = STEPS.find((s) => !stepComplete(progress, s.key))?.key ?? "publish";
   const [step, setStep] = useState<StepKey>(
@@ -53,7 +57,7 @@ export function OnboardingWizard({
   );
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-4xl">
       <ol className="mb-8 flex flex-wrap gap-2">
         {STEPS.map((s, i) => {
           const done = stepComplete(progress, s.key);
@@ -79,7 +83,7 @@ export function OnboardingWizard({
       </ol>
 
       <div className="rounded-2xl border bg-card p-6">
-        {step === "billing" && <BillingStep />}
+        {step === "billing" && <BillingStep initialPlan={initialPlan} />}
         {step === "profile" && <ProfileStep tenant={tenant} onDone={() => setStep("theme")} />}
         {step === "theme" && <ThemeStep tenant={tenant} onDone={() => setStep("litter")} />}
         {step === "litter" && (
@@ -105,13 +109,18 @@ function stepComplete(progress: OnboardingProgress, step: StepKey) {
   }
 }
 
-function BillingStep() {
+function BillingStep({ initialPlan }: { initialPlan?: string }) {
   const [loading, setLoading] = useState(false);
+  const [plan, setPlan] = useState<PlanTier>(isPlanTier(initialPlan) ? initialPlan : "pro");
 
   async function handlePay() {
     setLoading(true);
     try {
-      const res = await fetch("/api/checkout/platform", { method: "POST" });
+      const res = await fetch("/api/checkout/platform", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan }),
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Checkout failed");
       window.location.href = data.url;
@@ -122,14 +131,17 @@ function BillingStep() {
   }
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-lg font-semibold">Setup fee + subscription</h2>
-      <p className="text-sm text-muted-foreground">
-        $297 one-time setup, then $29/month. Cancel any time from your billing settings.
-      </p>
-      <Button onClick={handlePay} disabled={loading}>
+    <div className="space-y-5">
+      <div>
+        <h2 className="text-lg font-semibold">Choose your membership</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Billed monthly. Cancel any time from your billing settings.
+        </p>
+      </div>
+      <PricingCards selectedPlan={plan} onSelect={setPlan} />
+      <Button onClick={handlePay} disabled={loading} size="lg">
         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        Continue to payment
+        Continue with {getPlan(plan).name} ({formatPlanPrice(plan)}/mo)
       </Button>
     </div>
   );

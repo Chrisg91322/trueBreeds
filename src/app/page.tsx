@@ -7,9 +7,9 @@ import {
   ShoppingBag,
   Share2,
   ArrowRight,
-  Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PricingCards } from "@/components/site/pricing-cards";
 
 const FEATURES = [
   {
@@ -89,34 +89,11 @@ export default function MarketingHomePage() {
       </section>
 
       <section id="pricing" className="border-t bg-muted/30 py-20">
-        <div className="mx-auto max-w-lg px-6 text-center">
-          <h2 className="text-3xl font-semibold">Simple, one-tier pricing</h2>
-          <p className="mt-2 text-muted-foreground">No hidden fees. Cancel any time.</p>
-          <div className="mt-8 rounded-2xl border bg-background p-8 text-left shadow-sm">
-            <div className="text-sm font-medium text-muted-foreground">One-time setup</div>
-            <div className="text-4xl font-bold">$297</div>
-            <div className="mt-4 text-sm font-medium text-muted-foreground">then</div>
-            <div className="text-4xl font-bold">
-              $29<span className="text-lg font-medium text-muted-foreground">/mo</span>
-            </div>
-            <ul className="mt-6 space-y-2.5 text-sm">
-              {[
-                "Custom breeder website with 5 theme presets",
-                "Unlimited litters, animals & offspring",
-                "Lead CRM + automated transactional email",
-                "Stripe deposits — money goes straight to you",
-                "Amazon recommendations page",
-                "Social auto-posting (Facebook, Instagram, YouTube)",
-              ].map((item) => (
-                <li key={item} className="flex items-start gap-2">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-            <Button render={<Link href="/signup" />} className="mt-8 w-full" size="lg">
-              Get started
-            </Button>
+        <div className="mx-auto max-w-5xl px-6 text-center">
+          <h2 className="text-3xl font-semibold">Memberships that grow with your kennel</h2>
+          <p className="mt-2 text-muted-foreground">Choose Basic, Pro, or Premium. Cancel any time.</p>
+          <div className="mt-10 text-left">
+            <PricingCards />
           </div>
         </div>
       </section>

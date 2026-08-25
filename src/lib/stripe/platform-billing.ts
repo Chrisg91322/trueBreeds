@@ -1,22 +1,56 @@
 import "server-only";
+import type Stripe from "stripe";
 import { stripe } from "./client";
 import { prisma } from "@/lib/prisma";
+import {
+  getPlan,
+  isPlanTier,
+  planFromPriceId,
+  stripePriceIdForPlan,
+  type PlanTier,
+} from "@/lib/plans";
 
 const GRACE_PERIOD_DAYS = 14;
+const PLATFORM_CHECKOUT_KIND = "platform_subscription";
+
+function lineItemForPlan(plan: PlanTier): Stripe.Checkout.SessionCreateParams.LineItem {
+  const priceId = stripePriceIdForPlan(plan);
+  if (priceId) return { price: priceId, quantity: 1 };
+
+  const definition = getPlan(plan);
+  return {
+    quantity: 1,
+    price_data: {
+      currency: "usd",
+      unit_amount: definition.unitAmount,
+      recurring: { interval: "month" },
+      product_data: {
+        name: `TrueBreeds ${definition.name}`,
+        description: definition.description,
+      },
+    },
+  };
+}
 
 /**
- * $297 one-time setup fee + $29/mo subscription in a single Checkout
- * Session (one-time line item + recurring price, per spec §4).
+ * Recurring membership checkout for Basic / Pro / Premium.
  */
 export async function createPlatformCheckoutSession({
   tenantId,
   customerEmail,
+  plan,
 }: {
   tenantId: string;
   customerEmail: string;
+  plan: PlanTier;
 }) {
+  if (!isPlanTier(plan)) {
+    throw new Error("Invalid membership plan");
+  }
+
   const tenant = await prisma.tenant.findUniqueOrThrow({ where: { id: tenantId } });
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const priceId = stripePriceIdForPlan(plan);
 
   let subscription = await prisma.platformSubscription.findUnique({ where: { tenantId } });
 
@@ -33,23 +67,24 @@ export async function createPlatformCheckoutSession({
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
     customer: stripeCustomerId,
-    line_items: [
-      { price: process.env.STRIPE_PRICE_SETUP_FEE!, quantity: 1 },
-      { price: process.env.STRIPE_PRICE_SUBSCRIPTION!, quantity: 1 },
-    ],
+    line_items: [lineItemForPlan(plan)],
     subscription_data: {
-      metadata: { tenantId },
+      metadata: { tenantId, plan },
     },
-    metadata: { tenantId, kind: "platform_setup_and_subscription" },
+    metadata: {
+      tenantId,
+      plan,
+      kind: PLATFORM_CHECKOUT_KIND,
+    },
     success_url: `${appUrl}/onboarding?step=billing&status=success`,
     cancel_url: `${appUrl}/onboarding?step=billing&status=cancelled`,
     allow_promotion_codes: true,
   });
 
-  subscription = await prisma.platformSubscription.upsert({
+  await prisma.platformSubscription.upsert({
     where: { tenantId },
-    update: { stripeCustomerId },
-    create: { tenantId, stripeCustomerId, status: "incomplete" },
+    update: { stripeCustomerId, plan, stripePriceId: priceId },
+    create: { tenantId, stripeCustomerId, plan, stripePriceId: priceId, status: "incomplete" },
   });
 
   return session;
@@ -104,4 +139,10 @@ export async function reactivateTenant(tenantId: string) {
     }),
     prisma.tenant.update({ where: { id: tenantId }, data: { status: "active" } }),
   ]);
+}
+
+export function planFromStripeSubscription(subscription: Stripe.Subscription): PlanTier | null {
+  const fromMetadata = subscription.metadata?.plan;
+  if (isPlanTier(fromMetadata)) return fromMetadata;
+  return planFromPriceId(subscription.items.data[0]?.price?.id);
 }

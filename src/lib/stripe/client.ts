@@ -7,7 +7,7 @@ declare global {
 
 /**
  * Single Stripe client for the *platform's own* Stripe account. Used for:
- *  - Platform billing (the $297 setup fee + $29/mo subscription tenants pay us)
+ *  - Platform billing (Basic / Pro / Premium memberships tenants pay us)
  *  - Creating & managing Stripe Connect Express accounts on breeders' behalf
  *
  * Charges to *buyers* (deposits, balance invoices) are created with

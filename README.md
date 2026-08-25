@@ -6,7 +6,7 @@ dashboard to run their kennel: a lead CRM, Stripe-powered deposits, an Amazon
 storefront, social auto-posting, and team/settings management. Platform staff
 get their own admin panel for tenant health, MRR, and support.
 
-Pricing: **$297 one-time setup + $29/mo** per breeder (billed via Stripe
+Pricing: **Basic $49.99 / Pro $69.99 / Premium $99.99 per month**, billed via Stripe
 subscriptions on the *platform's* Stripe account — separate from the Stripe
 Connect accounts breeders use to collect their own buyer deposits).
 
@@ -169,7 +169,7 @@ earlier steps.
 ### 2. Payments — Stripe
 
 TrueBreeds uses **two** roles of the same Stripe account setup: the
-platform's own account (setup fee + subscription) and Stripe Connect
+platform's own account (membership subscription) and Stripe Connect
 (Express accounts breeders use to collect deposits directly).
 
 1. Create/log into a Stripe account at the [Stripe Dashboard](https://dashboard.stripe.com).
@@ -179,9 +179,10 @@ platform's own account (setup fee + subscription) and Stripe Connect
    → copy the secret key into `STRIPE_SECRET_KEY` and the publishable key
    into `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`.
 3. **Create products/prices**: [dashboard.stripe.com/products](https://dashboard.stripe.com/products)
-   → create a one-time **$297 setup fee** price and a recurring **$29/mo**
-   price. Copy their price IDs into `STRIPE_PRICE_SETUP_FEE` and
-   `STRIPE_PRICE_SUBSCRIPTION`.
+   → create recurring monthly prices for **Basic ($49.99)**, **Pro ($69.99)**,
+   and **Premium ($99.99)**. Copy their price IDs into `STRIPE_PRICE_BASIC`,
+   `STRIPE_PRICE_PRO`, and `STRIPE_PRICE_PREMIUM`. If those env vars are
+   unset, Checkout still creates the correct prices inline.
 4. **Enable Connect**: [dashboard.stripe.com/settings/connect](https://dashboard.stripe.com/settings/connect)
    → turn on Express accounts (this app uses embedded onboarding, so the
    optional `STRIPE_CONNECT_CLIENT_ID` OAuth setting isn't required).
@@ -218,8 +219,8 @@ platform's own account (setup fee + subscription) and Stripe Connect
    `DIRECT_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
    `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY`,
    `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`,
-   `STRIPE_CONNECT_WEBHOOK_SECRET`, `STRIPE_PRICE_SETUP_FEE`,
-   `STRIPE_PRICE_SUBSCRIPTION`, `RESEND_API_KEY`, `EMAIL_FROM`,
+   `STRIPE_CONNECT_WEBHOOK_SECRET`, `STRIPE_PRICE_BASIC`, `STRIPE_PRICE_PRO`,
+   `STRIPE_PRICE_PREMIUM`, `RESEND_API_KEY`, `EMAIL_FROM`,
    `TOKEN_ENCRYPTION_KEY` (generate with `openssl rand -hex 32`),
    `NEXT_PUBLIC_ROOT_DOMAIN`, `NEXT_PUBLIC_APP_URL`, and
    `PLATFORM_ADMIN_EMAILS` (your own email, so your first sign-in gets

@@ -4,11 +4,10 @@ import { prisma } from "@/lib/prisma";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { PLANS } from "@/lib/plans";
 
 // Platform admin data is per-request and never cacheable/prerenderable.
 export const dynamic = "force-dynamic";
-
-const MONTHLY_PRICE = 29;
 
 export default async function AdminOverviewPage() {
   const sinceWeek = new Date();
@@ -19,7 +18,10 @@ export default async function AdminOverviewPage() {
       prisma.tenant.count(),
       prisma.tenant.count({ where: { status: "active" } }),
       prisma.tenant.count({ where: { status: "suspended" } }),
-      prisma.platformSubscription.count({ where: { status: "active" } }),
+      prisma.platformSubscription.findMany({
+        where: { status: "active" },
+        select: { plan: true },
+      }),
       prisma.tenant.count({ where: { createdAt: { gte: sinceWeek } } }),
       prisma.tenant.findMany({
         orderBy: { createdAt: "desc" },
@@ -28,7 +30,7 @@ export default async function AdminOverviewPage() {
       }),
     ]);
 
-  const mrr = activeSubs * MONTHLY_PRICE;
+  const mrr = activeSubs.reduce((sum, sub) => sum + PLANS[sub.plan].monthlyPrice, 0);
 
   return (
     <div className="space-y-6">
@@ -40,7 +42,7 @@ export default async function AdminOverviewPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <StatCard label="Total tenants" value={totalTenants} icon={Building2} />
         <StatCard label="Active sites" value={activeTenants} icon={CheckCircle2} />
-        <StatCard label="MRR" value={`$${mrr.toLocaleString()}`} icon={DollarSign} hint={`${activeSubs} active subs`} />
+        <StatCard label="MRR" value={`$${mrr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} icon={DollarSign} hint={`${activeSubs.length} active subs`} />
         <StatCard label="New this week" value={newThisWeek} icon={UserPlus} />
         <StatCard label="Suspended" value={suspendedTenants} icon={AlertTriangle} />
       </div>

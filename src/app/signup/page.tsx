@@ -1,7 +1,13 @@
 import Link from "next/link";
 import { SignupForm } from "@/components/auth/signup-form";
+import { isPlanTier } from "@/lib/plans";
 
-export default function SignupPage() {
+export default async function SignupPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ plan?: string }>;
+}) {
+  const { plan } = await searchParams;
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4">
       <div className="flex flex-col items-center gap-8">
@@ -11,7 +17,7 @@ export default function SignupPage() {
           </span>
           <span className="text-lg font-semibold">TrueBreeds</span>
         </Link>
-        <SignupForm />
+        <SignupForm plan={isPlanTier(plan) ? plan : undefined} />
       </div>
     </div>
   );

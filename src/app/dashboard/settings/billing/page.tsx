@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BillingPortalButton } from "@/components/dashboard/billing-portal-button";
+import { formatPlanPrice, getPlan } from "@/lib/plans";
 
 const STATUS_STYLES: Record<string, string> = {
   incomplete: "bg-slate-200 text-slate-700",
@@ -20,13 +21,18 @@ export default async function BillingSettingsPage() {
     where: { tenantId: session.tenantId },
   });
 
+  const plan = subscription?.plan ? getPlan(subscription.plan) : null;
+
   return (
     <Card>
       <CardContent className="space-y-4 pt-6">
         <div>
-          <h3 className="font-medium">Platform subscription</h3>
+          <h3 className="font-medium">Platform membership</h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            $297 one-time setup fee, then $29/month for your TrueBreeds website.
+            {plan
+              ? `${plan.name} at ${formatPlanPrice(plan)}/month.`
+              : "Choose a membership during onboarding."}{" "}
+            Change or cancel any time.
           </p>
         </div>
 

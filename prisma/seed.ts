@@ -64,8 +64,8 @@ async function main() {
       },
       subscription: {
         create: {
+          plan: "pro",
           status: "active",
-          setupFeePaid: true,
           currentPeriodEnd: new Date(Date.now() + 20 * 24 * 60 * 60 * 1000),
         },
       },

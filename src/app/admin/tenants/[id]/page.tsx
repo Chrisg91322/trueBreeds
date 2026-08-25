@@ -84,7 +84,10 @@ export default async function AdminTenantDetailPage({
             <div>
               Status: <span className="font-medium capitalize">{tenant.subscription?.status.replace("_", " ") ?? "none"}</span>
             </div>
-            <div>Setup fee paid: {tenant.subscription?.setupFeePaid ? "Yes" : "No"}</div>
+            <div>
+              Plan:{" "}
+              <span className="font-medium capitalize">{tenant.subscription?.plan ?? "none"}</span>
+            </div>
             {tenant.subscription?.currentPeriodEnd && (
               <div>Renews: {tenant.subscription.currentPeriodEnd.toLocaleDateString()}</div>
             )}

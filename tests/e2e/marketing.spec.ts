@@ -9,15 +9,19 @@ test.describe("marketing homepage", () => {
       page.getByRole("heading", { name: /a premium website for your kennel/i })
     ).toBeVisible();
 
-    await expect(page.getByRole("heading", { name: "Simple, one-tier pricing" })).toBeVisible();
-    await expect(page.getByText("$297", { exact: true })).toBeVisible();
-    await expect(page.getByText("$29/mo")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Memberships that grow with your kennel" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Basic" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Pro" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Premium" })).toBeVisible();
+    await expect(page.getByText("$49.99")).toBeVisible();
+    await expect(page.getByText("$69.99")).toBeVisible();
+    await expect(page.getByText("$99.99")).toBeVisible();
 
     // Every "get started"-style CTA should route to signup.
     const ctas = page.getByRole("link", { name: /start your site|get started/i });
     await expect(ctas.first()).toBeVisible();
     for (const cta of await ctas.all()) {
-      await expect(cta).toHaveAttribute("href", "/signup");
+      await expect(cta).toHaveAttribute("href", /\/signup/);
     }
   });
 

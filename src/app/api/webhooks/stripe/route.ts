@@ -2,13 +2,14 @@ import { NextResponse, type NextRequest } from "next/server";
 import Stripe from "stripe";
 import { stripe } from "@/lib/stripe/client";
 import { prisma } from "@/lib/prisma";
-import { startGracePeriod, reactivateTenant } from "@/lib/stripe/platform-billing";
+import { startGracePeriod, reactivateTenant, planFromStripeSubscription } from "@/lib/stripe/platform-billing";
+import { isPlanTier } from "@/lib/plans";
 
 export const runtime = "nodejs";
 
 /**
  * Webhook for the PLATFORM's own Stripe account — billing events only
- * (setup fee + subscription). Deposit/Connect events are handled by
+ * (membership subscription). Deposit/Connect events are handled by
  * /api/webhooks/stripe-connect.
  */
 export async function POST(req: NextRequest) {
@@ -30,15 +31,19 @@ export async function POST(req: NextRequest) {
   switch (event.type) {
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session;
-      if (session.metadata?.kind === "platform_setup_and_subscription") {
+      if (
+        session.metadata?.kind === "platform_subscription" ||
+        session.metadata?.kind === "platform_setup_and_subscription"
+      ) {
         const tenantId = session.metadata.tenantId;
+        const plan = isPlanTier(session.metadata.plan) ? session.metadata.plan : undefined;
         await prisma.platformSubscription.update({
           where: { tenantId },
           data: {
-            setupFeePaid: true,
             stripeSubscriptionId:
               typeof session.subscription === "string" ? session.subscription : undefined,
             status: "active",
+            ...(plan ? { plan } : {}),
           },
         });
         await prisma.tenant.update({ where: { id: tenantId }, data: { status: "active" } });
@@ -86,6 +91,7 @@ export async function POST(req: NextRequest) {
         where: { stripeSubscriptionId: subscription.id },
       });
       if (sub) {
+        const plan = planFromStripeSubscription(subscription);
         await prisma.platformSubscription.update({
           where: { tenantId: sub.tenantId },
           data: {
@@ -94,6 +100,8 @@ export async function POST(req: NextRequest) {
             currentPeriodEnd: subscription.items.data[0]?.current_period_end
               ? new Date(subscription.items.data[0].current_period_end * 1000)
               : undefined,
+            stripePriceId: subscription.items.data[0]?.price?.id,
+            ...(plan ? { plan } : {}),
           },
         });
       }

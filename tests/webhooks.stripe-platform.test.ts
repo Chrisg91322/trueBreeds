@@ -24,7 +24,11 @@ vi.mock("@/lib/prisma", () => ({
 
 const startGracePeriod = vi.fn();
 const reactivateTenant = vi.fn();
-vi.mock("@/lib/stripe/platform-billing", () => ({ startGracePeriod, reactivateTenant }));
+vi.mock("@/lib/stripe/platform-billing", () => ({
+  startGracePeriod,
+  reactivateTenant,
+  planFromStripeSubscription: vi.fn(),
+}));
 
 function makeRequest(body: string) {
   return new NextRequest("http://localhost/api/webhooks/stripe", {
@@ -51,12 +55,12 @@ describe("POST /api/webhooks/stripe (platform billing)", () => {
     expect(platformSubscriptionUpdate).not.toHaveBeenCalled();
   });
 
-  it("activates the tenant and marks billing complete on setup+subscription checkout completion", async () => {
+  it("activates the tenant and marks billing complete on membership checkout completion", async () => {
     constructEvent.mockReturnValue({
       type: "checkout.session.completed",
       data: {
         object: {
-          metadata: { kind: "platform_setup_and_subscription", tenantId: "tenant-1" },
+          metadata: { kind: "platform_subscription", tenantId: "tenant-1", plan: "pro" },
           subscription: "sub_123",
         },
       },
@@ -69,7 +73,7 @@ describe("POST /api/webhooks/stripe (platform billing)", () => {
       expect.objectContaining({
         where: { tenantId: "tenant-1" },
         data: expect.objectContaining({
-          setupFeePaid: true,
+          plan: "pro",
           stripeSubscriptionId: "sub_123",
           status: "active",
         }),
