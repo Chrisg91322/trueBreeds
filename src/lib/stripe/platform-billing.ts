@@ -52,7 +52,7 @@ export async function createPlatformCheckoutSession({
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
   const priceId = stripePriceIdForPlan(plan);
 
-  let subscription = await prisma.platformSubscription.findUnique({ where: { tenantId } });
+  const subscription = await prisma.platformSubscription.findUnique({ where: { tenantId } });
 
   let stripeCustomerId = subscription?.stripeCustomerId ?? undefined;
   if (!stripeCustomerId) {
