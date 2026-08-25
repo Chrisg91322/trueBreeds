@@ -27,6 +27,9 @@ export function classifyHostname(hostnameWithPort: string): HostnameResolution {
   if (hostname === rootDomain) return { kind: "root" };
   if (hostname === `www.${rootDomain}`) return { kind: "www" };
 
+  // Vercel preview / project URLs are the platform app, not tenant sites.
+  if (hostname.endsWith(".vercel.app")) return { kind: "root" };
+
   if (hostname.endsWith(`.${rootDomain}`)) {
     const slug = hostname.slice(0, -1 * (rootDomain.length + 1));
     // Ignore platform infra subdomains that aren't tenants.

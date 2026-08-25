@@ -46,7 +46,13 @@ export async function middleware(request: NextRequest) {
       return NextResponse.next();
     }
 
-    const tenant = await resolveTenantForHostname(hostname);
+    let tenant;
+    try {
+      tenant = await resolveTenantForHostname(hostname);
+    } catch (err) {
+      console.error("Tenant hostname lookup failed", err);
+      return NextResponse.next();
+    }
 
     if (!tenant) {
       const response = NextResponse.rewrite(new URL("/not-found", request.url));
