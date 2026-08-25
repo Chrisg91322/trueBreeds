@@ -1,0 +1,738 @@
+// TrueBreeds — Prisma schema
+// Multi-tenant SaaS for animal breeders. Every tenant-scoped table carries a
+// `tenantId` column that is enforced both in application code (see
+// src/lib/db.ts `forTenant` helper) and at the database layer via Postgres
+// Row-Level Security policies (see prisma/rls.sql).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Platform / accounts
+// ---------------------------------------------------------------------------
+
+enum PlatformRole {
+  platform_admin
+  breeder_owner
+  breeder_staff
+}
+
+/// Mirrors Supabase `auth.users`. `id` MUST equal the Supabase auth user id.
+model User {
+  id          String   @id @default(uuid())
+  email       String   @unique
+  fullName    String?
+  avatarUrl   String?
+  platformRole PlatformRole @default(breeder_owner)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  memberships   TenantMember[]
+  leadNotes     LeadNote[]
+  auditLogs     AuditLog[]      @relation("AuditActor")
+  sentInvites   TenantInvite[]  @relation("InviteSender")
+
+  @@map("users")
+}
+
+enum TenantMemberRole {
+  owner
+  staff
+}
+
+/// Join table so a user can belong to (in practice, usually exactly one) tenant.
+model TenantMember {
+  id       String           @id @default(uuid())
+  tenantId String
+  userId   String
+  role     TenantMemberRole @default(owner)
+  createdAt DateTime        @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId])
+  @@index([userId])
+  @@map("tenant_members")
+}
+
+model TenantInvite {
+  id        String           @id @default(uuid())
+  tenantId  String
+  email     String
+  role      TenantMemberRole @default(staff)
+  token     String           @unique @default(uuid())
+  invitedById String
+  acceptedAt DateTime?
+  expiresAt  DateTime
+  createdAt  DateTime        @default(now())
+
+  tenant     Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  invitedBy  User   @relation("InviteSender", fields: [invitedById], references: [id])
+
+  @@index([tenantId])
+  @@map("tenant_invites")
+}
+
+// ---------------------------------------------------------------------------
+// Tenant (the breeder / kennel)
+// ---------------------------------------------------------------------------
+
+enum TenantStatus {
+  onboarding
+  active
+  past_due
+  suspended
+  cancelled
+}
+
+enum ThemePreset {
+  heritage
+  meadow
+  modern
+  rustic
+  monochrome
+}
+
+enum Species {
+  dog
+  cat
+}
+
+model Tenant {
+  id          String       @id @default(uuid())
+  slug        String       @unique
+  kennelName  String
+  species     Species      @default(dog)
+  breeds      String[]     @default([])
+  status      TenantStatus @default(onboarding)
+
+  // Branding / theme
+  themePreset ThemePreset  @default(heritage)
+  accentColor String       @default("#7C5C42")
+  headingFont String       @default("Fraunces")
+  bodyFont    String       @default("Inter")
+  logoUrl     String?
+  heroImageUrl String?
+
+  // Domains
+  customDomain       String?  @unique
+  customDomainStatus String?  @default("none") // none | pending | verified | error
+
+  // Contact / about content
+  tagline     String?
+  aboutHtml   String?
+  contactEmail String?
+  contactPhone String?
+  address      String?
+  instagramUrl String?
+  facebookUrl  String?
+
+  // Policies
+  depositPolicy      String?  @default("Deposits are non-refundable and reserve your place in the litter.")
+  healthGuaranteeHtml String?
+  contractHtml        String?
+  spayNeuterHtml       String?
+  faqHtml              String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members          TenantMember[]
+  invites          TenantInvite[]
+  animals          Animal[]
+  litters          Litter[]
+  offspring        Offspring[]
+  media            Media[]
+  leads            Lead[]
+  waitlistEntries  WaitlistEntry[]
+  deposits         Deposit[]
+  balanceInvoices  BalanceInvoice[]
+  stripeAccount    StripeConnectAccount?
+  subscription     PlatformSubscription?
+  amazonSettings   AmazonSettings?
+  affiliateProducts AffiliateProduct[]
+  affiliateClicks  AffiliateClick[]
+  socialConnections SocialConnection[]
+  socialPosts      SocialPost[]
+  testimonials     Testimonial[]
+  faqItems         FaqItem[]
+  auditLogsAbout   AuditLog[]       @relation("AuditTarget")
+  analyticsEvents  AnalyticsEvent[]
+  onboarding       OnboardingProgress?
+
+  @@map("tenants")
+}
+
+model OnboardingProgress {
+  id       String  @id @default(uuid())
+  tenantId String  @unique
+  billingComplete   Boolean @default(false)
+  profileComplete   Boolean @default(false)
+  themeComplete     Boolean @default(false)
+  firstLitterComplete Boolean @default(false)
+  stripeConnected   Boolean @default(false)
+  socialsComplete   Boolean @default(false)
+  published         Boolean @default(false)
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("onboarding_progress")
+}
+
+// ---------------------------------------------------------------------------
+// Animals / Litters / Offspring
+// ---------------------------------------------------------------------------
+
+enum Sex {
+  male
+  female
+}
+
+model Animal {
+  id          String   @id @default(uuid())
+  tenantId    String
+  name        String
+  species     Species  @default(dog)
+  breed       String?
+  sex         Sex
+  dateOfBirth DateTime?
+  color       String?
+  weightLbs   Float?
+  bio         String?
+  isBreedingStock Boolean @default(true)
+  isRetired   Boolean  @default(false)
+
+  // Pedigree / health testing
+  registryNumber String?
+  titles         String[] @default([])
+  healthTests    Json?    // e.g. [{ "test": "OFA Hips", "result": "Good", "date": "2024-01-01", "certUrl": "..." }]
+  pedigreeUrl    String?
+  embarkUrl      String?
+
+  coverPhotoUrl String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  littersAsSire Litter[] @relation("SireLitters")
+  littersAsDam  Litter[] @relation("DamLitters")
+
+  @@index([tenantId])
+  @@map("animals")
+}
+
+enum LitterStatus {
+  planned
+  expecting
+  born
+  active
+  complete
+}
+
+model Litter {
+  id       String       @id @default(uuid())
+  tenantId String
+  species  Species      @default(dog)
+  breed    String?
+  sireId   String?
+  damId    String?
+  status   LitterStatus @default(planned)
+
+  whelpDate            DateTime?
+  expectedWhelpDate    DateTime?
+  goHomeDate           DateTime?
+  description          String?
+  defaultPrice         Float?
+  defaultDepositAmount Float?
+  coverPhotoUrl        String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sire   Animal? @relation("SireLitters", fields: [sireId], references: [id])
+  dam    Animal? @relation("DamLitters", fields: [damId], references: [id])
+
+  offspring       Offspring[]
+  waitlistEntries WaitlistEntry[]
+
+  @@index([tenantId])
+  @@map("litters")
+}
+
+enum OffspringStatus {
+  upcoming
+  available
+  deposit_received
+  reserved
+  sold
+  kept
+}
+
+model Offspring {
+  id       String          @id @default(uuid())
+  tenantId String
+  litterId String
+  name     String?
+  sex      Sex
+  color    String?
+  price    Float?
+  depositAmount Float?
+  status   OffspringStatus @default(upcoming)
+  microchip String?
+  notes     String?
+  coverPhotoUrl String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  litter Litter @relation(fields: [litterId], references: [id], onDelete: Cascade)
+  deposits Deposit[]
+  balanceInvoices BalanceInvoice[]
+  leads    Lead[]
+
+  @@index([tenantId])
+  @@index([litterId])
+  @@map("offspring")
+}
+
+enum MediaEntityType {
+  tenant
+  animal
+  litter
+  offspring
+  testimonial
+}
+
+/// Polymorphic gallery media. `entityType` + `entityId` identify the owning
+/// record (Animal, Litter, Offspring, or Tenant for generic site photos).
+/// No DB-level FK on entityId since it can point at multiple tables; ownership
+/// is enforced in application code and covered by the tenant-isolation tests.
+model Media {
+  id         String          @id @default(uuid())
+  tenantId   String
+  entityType MediaEntityType
+  entityId   String
+  url        String
+  altText    String?
+  isVideo    Boolean         @default(false)
+  sortOrder  Int             @default(0)
+  createdAt  DateTime        @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([entityType, entityId])
+  @@map("media")
+}
+
+// ---------------------------------------------------------------------------
+// Leads / CRM / Waitlist
+// ---------------------------------------------------------------------------
+
+enum LeadSource {
+  inquiry
+  waitlist
+  deposit
+  manual
+}
+
+enum LeadStatus {
+  new
+  contacted
+  approved
+  deposit
+  sold
+  archived
+}
+
+model Lead {
+  id       String     @id @default(uuid())
+  tenantId String
+  name     String
+  email    String?
+  phone    String?
+  message  String?
+  source   LeadSource @default(inquiry)
+  status   LeadStatus @default(new)
+  tags     String[]   @default([])
+  offspringId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  offspring Offspring? @relation(fields: [offspringId], references: [id])
+  notes     LeadNote[]
+
+  @@index([tenantId])
+  @@index([status])
+  @@map("leads")
+}
+
+model LeadNote {
+  id        String   @id @default(uuid())
+  leadId    String
+  authorId  String?
+  body      String
+  createdAt DateTime @default(now())
+
+  lead   Lead  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  author User? @relation(fields: [authorId], references: [id])
+
+  @@index([leadId])
+  @@map("lead_notes")
+}
+
+model WaitlistEntry {
+  id       String   @id @default(uuid())
+  tenantId String
+  litterId String?
+  breed    String?
+  name     String
+  email    String
+  phone    String?
+  notes    String?
+  rank     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  tenant Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  litter Litter? @relation(fields: [litterId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@map("waitlist_entries")
+}
+
+model Testimonial {
+  id        String   @id @default(uuid())
+  tenantId  String
+  authorName String
+  quote      String
+  rating     Int?     @default(5)
+  photoUrl   String?
+  isPublished Boolean @default(true)
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("testimonials")
+}
+
+model FaqItem {
+  id        String @id @default(uuid())
+  tenantId  String
+  question  String
+  answer    String
+  sortOrder Int    @default(0)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("faq_items")
+}
+
+// ---------------------------------------------------------------------------
+// Payments — platform billing + Stripe Connect deposits
+// ---------------------------------------------------------------------------
+
+enum SubscriptionStatus {
+  incomplete
+  trialing
+  active
+  past_due
+  grace_period
+  suspended
+  cancelled
+}
+
+model PlatformSubscription {
+  id       String @id @default(uuid())
+  tenantId String @unique
+
+  stripeCustomerId     String?  @unique
+  stripeSubscriptionId String?  @unique
+  status               SubscriptionStatus @default(incomplete)
+  setupFeePaid         Boolean  @default(false)
+  currentPeriodEnd     DateTime?
+  gracePeriodEndsAt    DateTime?
+  cancelAtPeriodEnd    Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("platform_subscriptions")
+}
+
+model StripeConnectAccount {
+  id       String @id @default(uuid())
+  tenantId String @unique
+
+  stripeAccountId    String  @unique
+  chargesEnabled     Boolean @default(false)
+  payoutsEnabled     Boolean @default(false)
+  detailsSubmitted   Boolean @default(false)
+  applicationFeeBps  Int     @default(0) // basis points, e.g. 250 = 2.5%. 0 at launch.
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("stripe_connect_accounts")
+}
+
+enum DepositStatus {
+  pending
+  paid
+  refunded
+  failed
+}
+
+model Deposit {
+  id       String        @id @default(uuid())
+  tenantId String
+  offspringId String
+  buyerName  String
+  buyerEmail String
+  buyerPhone String?
+  amount     Float
+  status     DepositStatus @default(pending)
+
+  stripePaymentIntentId String? @unique
+  stripeCheckoutSessionId String? @unique
+  applicationFeeAmount Float?   @default(0)
+
+  policyAcceptedAt DateTime?
+  policySnapshot   String? // deposit policy text at time of purchase
+
+  refundReason String?
+  refundedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  offspring Offspring @relation(fields: [offspringId], references: [id])
+
+  @@index([tenantId])
+  @@map("deposits")
+}
+
+enum BalanceInvoiceStatus {
+  draft
+  open
+  paid
+  void
+  uncollectible
+}
+
+model BalanceInvoice {
+  id          String @id @default(uuid())
+  tenantId    String
+  offspringId String
+  amount      Float
+  status      BalanceInvoiceStatus @default(draft)
+  stripeInvoiceId String? @unique
+  dueDate     DateTime?
+  paidAt      DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  offspring Offspring @relation(fields: [offspringId], references: [id])
+
+  @@index([tenantId])
+  @@map("balance_invoices")
+}
+
+// ---------------------------------------------------------------------------
+// Amazon affiliate
+// ---------------------------------------------------------------------------
+
+model AmazonSettings {
+  id       String  @id @default(uuid())
+  tenantId String  @unique
+  associatesTag String?
+  paapiAccessKeyEnc String?
+  paapiSecretKeyEnc String?
+  paapiPartnerTag   String?
+  isConfigured Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("amazon_settings")
+}
+
+model AffiliateProduct {
+  id        String   @id @default(uuid())
+  tenantId  String
+  category  String   @default("other") // food | crates | toys | grooming | other
+  originalUrl String
+  affiliateUrl String
+  title     String?
+  imageUrl  String?
+  price     String?
+  sortOrder Int      @default(0)
+  isPublished Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  clicks AffiliateClick[]
+
+  @@index([tenantId])
+  @@map("affiliate_products")
+}
+
+model AffiliateClick {
+  id        String   @id @default(uuid())
+  tenantId  String
+  productId String
+  referrer  String?
+  createdAt DateTime @default(now())
+
+  tenant  Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  product AffiliateProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([productId])
+  @@map("affiliate_clicks")
+}
+
+// ---------------------------------------------------------------------------
+// Social auto-posting
+// ---------------------------------------------------------------------------
+
+enum SocialProviderType {
+  facebook
+  instagram
+  youtube
+  tiktok
+}
+
+enum SocialConnectionStatus {
+  connected
+  needs_reauth
+  disconnected
+}
+
+model SocialConnection {
+  id       String             @id @default(uuid())
+  tenantId String
+  provider SocialProviderType
+  status   SocialConnectionStatus @default(connected)
+  accountName String?
+  accountId   String?
+  accessTokenEnc  String?
+  refreshTokenEnc String?
+  expiresAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  posts  SocialPostTarget[]
+
+  @@unique([tenantId, provider])
+  @@map("social_connections")
+}
+
+enum SocialPostStatus {
+  draft
+  scheduled
+  posted
+  failed
+  awaiting_manual
+}
+
+model SocialPost {
+  id        String   @id @default(uuid())
+  tenantId  String
+  caption   String
+  mediaUrls String[] @default([])
+  scheduledAt DateTime?
+  status    SocialPostStatus @default(draft)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant  Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  targets SocialPostTarget[]
+
+  @@index([tenantId])
+  @@map("social_posts")
+}
+
+model SocialPostTarget {
+  id        String   @id @default(uuid())
+  postId    String
+  connectionId String
+  provider  SocialProviderType
+  status    SocialPostStatus @default(draft)
+  externalPostId String?
+  error     String?
+  publishedAt DateTime?
+
+  post       SocialPost       @relation(fields: [postId], references: [id], onDelete: Cascade)
+  connection SocialConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@map("social_post_targets")
+}
+
+// ---------------------------------------------------------------------------
+// Platform admin / analytics
+// ---------------------------------------------------------------------------
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  actorId   String?
+  tenantId  String?
+  action    String
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  actor  User?   @relation("AuditActor", fields: [actorId], references: [id])
+  tenant Tenant? @relation("AuditTarget", fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@map("audit_logs")
+}
+
+enum AnalyticsEventType {
+  page_view
+  inquiry
+  waitlist_signup
+  deposit_started
+  deposit_completed
+  affiliate_click
+}
+
+model AnalyticsEvent {
+  id        String             @id @default(uuid())
+  tenantId  String
+  type      AnalyticsEventType
+  path      String?
+  metadata  Json?
+  createdAt DateTime           @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, type])
+  @@index([tenantId, createdAt])
+  @@map("analytics_events")
+}
