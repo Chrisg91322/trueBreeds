@@ -5,6 +5,10 @@ test.describe("marketing homepage", () => {
     await page.goto("/");
 
     await expect(page).toHaveTitle(/TrueBreeds/i);
+    await expect(page.locator('link[rel="icon"]').first()).toHaveAttribute(
+      "href",
+      /icon|favicon|logo2/i
+    );
     await expect(
       page.getByRole("heading", { name: /a premium website for your kennel/i })
     ).toBeVisible();
@@ -13,6 +17,7 @@ test.describe("marketing homepage", () => {
     await expect(page.getByRole("heading", { name: "Basic" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Pro" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Premium" })).toBeVisible();
+    await expect(page.getByText("$297 one-time setup").first()).toBeVisible();
     await expect(page.getByText("$49.99")).toBeVisible();
     await expect(page.getByText("$69.99")).toBeVisible();
     await expect(page.getByText("$99.99")).toBeVisible();

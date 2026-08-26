@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSessionContext } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
+import { PlatformLogo } from "@/components/site/platform-logo";
 import { acceptInvite } from "@/lib/actions/settings";
 
 export default async function InvitePage({
@@ -22,6 +23,7 @@ export default async function InvitePage({
 
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center px-6 text-center">
+      <PlatformLogo className="mb-8" />
       <h1 className="text-2xl font-semibold">Join {invite.tenant.kennelName}</h1>
       {expired ? (
         <p className="mt-3 text-sm text-muted-foreground">

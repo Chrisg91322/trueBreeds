@@ -29,14 +29,18 @@ export async function getSessionContext(): Promise<SessionContext | null> {
 
   if (!user || !user.email) return null;
 
+  const bootstrapAdmin = isBootstrapAdmin(user.email);
   const dbUser = await prisma.user.upsert({
     where: { id: user.id },
-    update: { email: user.email },
+    update: {
+      email: user.email,
+      ...(bootstrapAdmin ? { platformRole: "platform_admin" as const } : {}),
+    },
     create: {
       id: user.id,
       email: user.email,
       fullName: (user.user_metadata?.full_name as string | undefined) ?? null,
-      platformRole: isBootstrapAdmin(user.email) ? "platform_admin" : "breeder_owner",
+      platformRole: bootstrapAdmin ? "platform_admin" : "breeder_owner",
     },
     include: {
       memberships: { include: { tenant: true }, take: 1, orderBy: { createdAt: "asc" } },

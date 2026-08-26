@@ -34,6 +34,7 @@ async function main() {
       themePreset: "meadow",
       accentColor: "#5B7553",
       logoUrl: photo("bml-logo", 200, 200),
+      faviconUrl: photo("bml-logo", 200, 200),
       heroImageUrl: photo("bml-hero", 1600, 900),
       tagline: "Health-tested, home-raised Labrador Retrievers in the Blue Ridge foothills.",
       aboutHtml:
@@ -419,7 +420,7 @@ async function main() {
     );
   }
 
-  console.log(`Done. Visit the public site at http://${tenant.slug}.localhost:3000 (or your configured root domain).`);
+  console.log(`Done. Visit the public site at http://${tenant.slug}.localhost:3002 (or your configured root domain).`);
 }
 
 main()

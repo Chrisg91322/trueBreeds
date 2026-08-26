@@ -30,8 +30,8 @@ export default async function BillingSettingsPage() {
           <h3 className="font-medium">Platform membership</h3>
           <p className="mt-1 text-sm text-muted-foreground">
             {plan
-              ? `${plan.name} at ${formatPlanPrice(plan)}/month.`
-              : "Choose a membership during onboarding."}{" "}
+              ? `${plan.name} at ${formatPlanPrice(plan)}/month, plus a $297 one-time setup fee.`
+              : "Choose a membership during onboarding. Includes a $297 one-time setup fee."}{" "}
             Change or cancel any time.
           </p>
         </div>

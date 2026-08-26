@@ -15,7 +15,7 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   reporter: [["list"]],
   use: {
-    baseURL: process.env.PLAYWRIGHT_BASE_URL || "http://localhost:3000",
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || "http://localhost:3002",
     trace: "on-first-retry",
   },
   projects: [
@@ -31,7 +31,7 @@ export default defineConfig({
         // route compilation in dev mode is slow enough under parallel
         // workers to make click-triggered navigations flaky/time out.
         command: "npm run build && npm run start",
-        url: "http://localhost:3000",
+        url: "http://localhost:3002",
         reuseExistingServer: !process.env.CI,
         timeout: 180_000,
       },

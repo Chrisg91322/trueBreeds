@@ -93,6 +93,6 @@ export async function middleware(request: NextRequest) {
 }
 
 function getAppHost(request: NextRequest) {
-  const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "localhost:3000";
+  const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "localhost:3002";
   return request.nextUrl.protocol === "http:" ? root : root;
 }

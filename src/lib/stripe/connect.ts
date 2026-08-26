@@ -37,7 +37,7 @@ export async function getOrCreateConnectAccount(tenantId: string) {
 
 export async function createConnectOnboardingLink(tenantId: string) {
   const connectAccount = await getOrCreateConnectAccount(tenantId);
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3002";
 
   const accountLink = await stripe.accountLinks.create({
     account: connectAccount.stripeAccountId,
@@ -112,7 +112,7 @@ export async function createDepositCheckoutSession({
     ? Math.round((amountCents * connectAccount.applicationFeeBps) / 10000)
     : undefined;
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3002";
   const acceptedAt = new Date();
 
   const deposit = await prisma.deposit.create({

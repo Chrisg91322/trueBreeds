@@ -45,7 +45,7 @@ export function SiteHeader({
               {kennelName.slice(0, 1)}
             </span>
           )}
-          <span className="site-font-heading text-lg font-semibold tracking-tight">
+          <span className="site-font-heading max-w-[12rem] truncate text-base font-semibold tracking-tight sm:max-w-none sm:text-lg">
             {kennelName}
           </span>
         </Link>
@@ -90,6 +90,13 @@ export function SiteHeader({
               {link.label}
             </Link>
           ))}
+          <Link
+            href="/available"
+            className="mt-2 rounded-full site-accent-bg px-5 py-2.5 text-center text-sm font-semibold text-white"
+            onClick={() => setOpen(false)}
+          >
+            View Available
+          </Link>
         </nav>
       )}
     </header>

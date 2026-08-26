@@ -6,7 +6,7 @@ dashboard to run their kennel: a lead CRM, Stripe-powered deposits, an Amazon
 storefront, social auto-posting, and team/settings management. Platform staff
 get their own admin panel for tenant health, MRR, and support.
 
-Pricing: **Basic $49.99 / Pro $69.99 / Premium $99.99 per month**, billed via Stripe
+Pricing: **$297 one-time setup** plus **Basic $49.99 / Pro $69.99 / Premium $99.99 per month**, billed via Stripe
 subscriptions on the *platform's* Stripe account — separate from the Stripe
 Connect accounts breeders use to collect their own buyer deposits).
 
@@ -65,8 +65,8 @@ npm run db:seed              # optional: seeds a demo tenant, "Blue Moon Labrado
 npm run dev
 ```
 
-Visit `http://localhost:3000` for the marketing site. Tenant sites are served
-from subdomains — in local dev, visit `http://<slug>.localhost:3000` (most
+Visit `http://localhost:3002` for the marketing site. Tenant sites are served
+from subdomains — in local dev, visit `http://<slug>.localhost:3002` (most
 browsers resolve `*.localhost` to `127.0.0.1` automatically).
 
 ### Environment variables
@@ -179,8 +179,9 @@ platform's own account (membership subscription) and Stripe Connect
    → copy the secret key into `STRIPE_SECRET_KEY` and the publishable key
    into `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`.
 3. **Create products/prices**: [dashboard.stripe.com/products](https://dashboard.stripe.com/products)
-   → create recurring monthly prices for **Basic ($49.99)**, **Pro ($69.99)**,
-   and **Premium ($99.99)**. Copy their price IDs into `STRIPE_PRICE_BASIC`,
+   → create a one-time **$297 setup fee** plus recurring monthly prices for
+   **Basic ($49.99)**, **Pro ($69.99)**, and **Premium ($99.99)**. Copy their
+   price IDs into `STRIPE_PRICE_SETUP_FEE`, `STRIPE_PRICE_BASIC`,
    `STRIPE_PRICE_PRO`, and `STRIPE_PRICE_PREMIUM`. If those env vars are
    unset, Checkout still creates the correct prices inline.
 4. **Enable Connect**: [dashboard.stripe.com/settings/connect](https://dashboard.stripe.com/settings/connect)
@@ -199,7 +200,7 @@ platform's own account (membership subscription) and Stripe Connect
      when creating it) → copy its signing secret into
      `STRIPE_CONNECT_WEBHOOK_SECRET`.
    - For local testing before you have a public URL, use the
-     [Stripe CLI](https://docs.stripe.com/stripe-cli) (`stripe listen --forward-to localhost:3000/api/webhooks/stripe`).
+     [Stripe CLI](https://docs.stripe.com/stripe-cli) (`stripe listen --forward-to localhost:3002/api/webhooks/stripe`).
 
 ### 3. Transactional email — Resend
 
@@ -219,8 +220,8 @@ platform's own account (membership subscription) and Stripe Connect
    `DIRECT_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
    `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY`,
    `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`,
-   `STRIPE_CONNECT_WEBHOOK_SECRET`, `STRIPE_PRICE_BASIC`, `STRIPE_PRICE_PRO`,
-   `STRIPE_PRICE_PREMIUM`, `RESEND_API_KEY`, `EMAIL_FROM`,
+   `STRIPE_CONNECT_WEBHOOK_SECRET`, `STRIPE_PRICE_SETUP_FEE`, `STRIPE_PRICE_BASIC`,
+   `STRIPE_PRICE_PRO`, `STRIPE_PRICE_PREMIUM`, `RESEND_API_KEY`, `EMAIL_FROM`,
    `TOKEN_ENCRYPTION_KEY` (generate with `openssl rand -hex 32`),
    `NEXT_PUBLIC_ROOT_DOMAIN`, `NEXT_PUBLIC_APP_URL`, and
    `PLATFORM_ADMIN_EMAILS` (your own email, so your first sign-in gets

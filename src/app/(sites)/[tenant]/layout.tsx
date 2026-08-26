@@ -1,9 +1,30 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getPublicTenant } from "@/lib/site-data";
+import { tenantSiteIcons } from "@/lib/site-icons";
 import { getThemeCssVars } from "@/lib/theme";
 import { SiteHeader } from "@/components/site/site-header";
 import { SiteFooter } from "@/components/site/site-footer";
 import { PageViewTracker } from "@/components/site/page-view-tracker";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ tenant: string }>;
+}): Promise<Metadata> {
+  const { tenant: slug } = await params;
+  const data = await getPublicTenant(slug);
+  if (!data) return {};
+  const { tenant } = data;
+  return {
+    title: {
+      default: tenant.kennelName,
+      template: `%s · ${tenant.kennelName}`,
+    },
+    description: tenant.tagline ?? undefined,
+    icons: tenantSiteIcons(tenant.faviconUrl, tenant.logoUrl),
+  };
+}
 
 export default async function TenantSiteLayout({
   children,

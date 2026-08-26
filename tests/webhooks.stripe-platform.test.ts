@@ -74,6 +74,7 @@ describe("POST /api/webhooks/stripe (platform billing)", () => {
         where: { tenantId: "tenant-1" },
         data: expect.objectContaining({
           plan: "pro",
+          setupFeePaid: true,
           stripeSubscriptionId: "sub_123",
           status: "active",
         }),

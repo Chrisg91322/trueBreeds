@@ -8,26 +8,35 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import type { PlanTier } from "@/lib/plans";
+import { PLAN_COOKIE, type PlanTier } from "@/lib/plans";
+
+function rememberPlan(plan?: PlanTier) {
+  if (!plan) return;
+  document.cookie = `${PLAN_COOKIE}=${plan}; Path=/; Max-Age=604800; SameSite=Lax`;
+}
+
+function authRedirectUrl() {
+  return `${window.location.origin}/auth/callback`;
+}
 
 export function SignupForm({ plan }: { plan?: PlanTier }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmSent, setConfirmSent] = useState(false);
-  const nextPath = plan ? `/onboarding?plan=${plan}` : "/onboarding";
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    rememberPlan(plan);
     const form = new FormData(e.currentTarget);
     const supabase = createSupabaseBrowserClient();
 
     const { data, error } = await supabase.auth.signUp({
       email: String(form.get("email")),
       password: String(form.get("password")),
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}` },
+      options: { emailRedirectTo: authRedirectUrl() },
     });
 
     if (error) {
@@ -43,15 +52,16 @@ export function SignupForm({ plan }: { plan?: PlanTier }) {
       return;
     }
 
-    router.push(nextPath);
+    router.push("/auth/continue");
     router.refresh();
   }
 
   async function handleGoogle() {
+    rememberPlan(plan);
     const supabase = createSupabaseBrowserClient();
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}` },
+      options: { redirectTo: authRedirectUrl() },
     });
   }
 
@@ -71,7 +81,7 @@ export function SignupForm({ plan }: { plan?: PlanTier }) {
       <div>
         <h1 className="text-2xl font-semibold">Start your kennel site</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Live in under 15 minutes. Memberships from $49.99/mo.
+          Live in under 15 minutes. $297 setup + memberships from $49.99/mo.
         </p>
       </div>
 

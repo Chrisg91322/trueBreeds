@@ -82,7 +82,7 @@ export function OnboardingWizard({
         })}
       </ol>
 
-      <div className="rounded-2xl border bg-card p-6">
+      <div className="rounded-2xl border bg-card p-4 sm:p-6">
         {step === "billing" && <BillingStep initialPlan={initialPlan} />}
         {step === "profile" && <ProfileStep tenant={tenant} onDone={() => setStep("theme")} />}
         {step === "theme" && <ThemeStep tenant={tenant} onDone={() => setStep("litter")} />}
@@ -135,13 +135,13 @@ function BillingStep({ initialPlan }: { initialPlan?: string }) {
       <div>
         <h2 className="text-lg font-semibold">Choose your membership</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Billed monthly. Cancel any time from your billing settings.
+          $297 one-time setup, then {formatPlanPrice(plan)}/month. Cancel any time from your billing settings.
         </p>
       </div>
       <PricingCards selectedPlan={plan} onSelect={setPlan} />
       <Button onClick={handlePay} disabled={loading} size="lg">
         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        Continue with {getPlan(plan).name} ({formatPlanPrice(plan)}/mo)
+        Continue with {getPlan(plan).name} ({formatPlanPrice(plan)}/mo + $297 setup)
       </Button>
     </div>
   );
@@ -225,6 +225,7 @@ function ThemeStep({ tenant, onDone }: { tenant: Tenant; onDone: () => void }) {
           accentColor: String(form.get("accentColor") || THEME_PRESETS[preset].defaultAccent),
           logoUrl: String(form.get("logoUrl") || "") || undefined,
           heroImageUrl: String(form.get("heroImageUrl") || "") || undefined,
+          faviconUrl: String(form.get("faviconUrl") || "").trim() || null,
           tagline: String(form.get("tagline") || "") || undefined,
         });
         toast.success("Theme saved");
@@ -275,6 +276,20 @@ function ThemeStep({ tenant, onDone }: { tenant: Tenant; onDone: () => void }) {
       <div>
         <Label htmlFor="logoUrl">Logo image URL</Label>
         <Input id="logoUrl" name="logoUrl" type="url" defaultValue={tenant.logoUrl ?? ""} className="mt-1.5" />
+      </div>
+      <div>
+        <Label htmlFor="faviconUrl">Favicon URL</Label>
+        <Input
+          id="faviconUrl"
+          name="faviconUrl"
+          type="url"
+          defaultValue={tenant.faviconUrl ?? ""}
+          className="mt-1.5"
+          placeholder="https://…"
+        />
+        <p className="mt-1.5 text-xs text-muted-foreground">
+          Square PNG or ICO shown in the browser tab. Leave blank to use your logo.
+        </p>
       </div>
       <div>
         <Label htmlFor="heroImageUrl">Hero photo URL</Label>

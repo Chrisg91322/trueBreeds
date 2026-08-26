@@ -1,9 +1,20 @@
+/** Matches Stripe product "One Time Setup Fee" ($297.00 one-time). */
+export const SETUP_FEE = {
+  amount: 297,
+  unitAmount: 29700,
+  envPriceKey: "STRIPE_PRICE_SETUP_FEE",
+  stripeProductName: "One Time Setup Fee",
+  label: "$297 one-time setup",
+} as const;
+
 export const PLAN_TIERS = ["basic", "pro", "premium"] as const;
 export type PlanTier = (typeof PLAN_TIERS)[number];
 
 export type PlanDefinition = {
   id: PlanTier;
   name: string;
+  /** Exact Stripe Dashboard product name for this membership. */
+  stripeProductName: string;
   description: string;
   monthlyPrice: number;
   unitAmount: number;
@@ -16,6 +27,7 @@ export const PLANS: Record<PlanTier, PlanDefinition> = {
   basic: {
     id: "basic",
     name: "Basic",
+    stripeProductName: "Basic Membership",
     description: "A polished kennel site with the essentials.",
     monthlyPrice: 49.99,
     unitAmount: 4999,
@@ -30,35 +42,41 @@ export const PLANS: Record<PlanTier, PlanDefinition> = {
   pro: {
     id: "pro",
     name: "Pro",
-    description: "Run deposits, leads, and your pipeline in one place.",
+    stripeProductName: "Pro Membership",
+    description: "More pages, breeder agreements, leads, and your pipeline in one place.",
     monthlyPrice: 69.99,
     unitAmount: 6999,
     envPriceKey: "STRIPE_PRICE_PRO",
     highlighted: true,
     features: [
       "Everything in Basic",
-      "Stripe deposits to your bank",
-      "Lead CRM & inquiry timeline",
-      "Site analytics",
+      "Up to 4 pages",
+      "Digital breeder agreements",
+      "Lead Tracking",
     ],
   },
   premium: {
     id: "premium",
     name: "Premium",
+    stripeProductName: "Premium Membership",
     description: "The full kennel toolkit, including growth tools.",
     monthlyPrice: 99.99,
     unitAmount: 9999,
     envPriceKey: "STRIPE_PRICE_PREMIUM",
     features: [
       "Everything in Pro",
-      "Amazon recommendations page",
-      "Social auto-posting",
-      "Team accounts",
+      "Up to 7 Pages",
+      "Amazon Affliates page",
+      "Share to Social Accounts",
+      "SEO & Site analytics",
+      "Stripe deposits to your bank",
     ],
   },
 };
 
 export const PLAN_LIST = PLAN_TIERS.map((id) => PLANS[id]);
+
+export const PLAN_COOKIE = "tb_plan";
 
 export function isPlanTier(value: unknown): value is PlanTier {
   return typeof value === "string" && (PLAN_TIERS as readonly string[]).includes(value);
@@ -71,6 +89,14 @@ export function getPlan(id: PlanTier): PlanDefinition {
 export function formatPlanPrice(plan: PlanDefinition | PlanTier) {
   const amount = typeof plan === "string" ? PLANS[plan].monthlyPrice : plan.monthlyPrice;
   return `$${amount.toFixed(2)}`;
+}
+
+export function formatSetupFee() {
+  return `$${SETUP_FEE.amount}`;
+}
+
+export function stripePriceIdForSetupFee(): string | undefined {
+  return process.env[SETUP_FEE.envPriceKey] || undefined;
 }
 
 export function stripePriceIdForPlan(plan: PlanTier): string | undefined {

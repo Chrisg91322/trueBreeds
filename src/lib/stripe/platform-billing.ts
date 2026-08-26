@@ -7,6 +7,8 @@ import {
   isPlanTier,
   planFromPriceId,
   stripePriceIdForPlan,
+  stripePriceIdForSetupFee,
+  SETUP_FEE,
   type PlanTier,
 } from "@/lib/plans";
 
@@ -25,15 +27,31 @@ function lineItemForPlan(plan: PlanTier): Stripe.Checkout.SessionCreateParams.Li
       unit_amount: definition.unitAmount,
       recurring: { interval: "month" },
       product_data: {
-        name: `TrueBreeds ${definition.name}`,
+        name: definition.stripeProductName,
         description: definition.description,
       },
     },
   };
 }
 
+function setupFeeLineItem(): Stripe.Checkout.SessionCreateParams.LineItem {
+  const priceId = stripePriceIdForSetupFee();
+  if (priceId) return { price: priceId, quantity: 1 };
+  return {
+    quantity: 1,
+    price_data: {
+      currency: "usd",
+      unit_amount: SETUP_FEE.unitAmount,
+      product_data: {
+        name: SETUP_FEE.stripeProductName,
+        description: "One-time onboarding and site setup",
+      },
+    },
+  };
+}
+
 /**
- * Recurring membership checkout for Basic / Pro / Premium.
+ * $297 one-time setup fee plus a Basic / Pro / Premium membership.
  */
 export async function createPlatformCheckoutSession({
   tenantId,
@@ -49,7 +67,7 @@ export async function createPlatformCheckoutSession({
   }
 
   const tenant = await prisma.tenant.findUniqueOrThrow({ where: { id: tenantId } });
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3002";
   const priceId = stripePriceIdForPlan(plan);
 
   const subscription = await prisma.platformSubscription.findUnique({ where: { tenantId } });
@@ -67,7 +85,7 @@ export async function createPlatformCheckoutSession({
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
     customer: stripeCustomerId,
-    line_items: [lineItemForPlan(plan)],
+    line_items: [setupFeeLineItem(), lineItemForPlan(plan)],
     subscription_data: {
       metadata: { tenantId, plan },
     },
@@ -94,7 +112,7 @@ export async function createBillingPortalSession(tenantId: string) {
   const subscription = await prisma.platformSubscription.findUniqueOrThrow({
     where: { tenantId },
   });
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3002";
 
   if (!subscription.stripeCustomerId) {
     throw new Error("Tenant has no Stripe customer yet");

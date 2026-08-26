@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { PLAN_LIST, formatPlanPrice, isPlanTier } from "@/lib/plans";
+import { PLAN_LIST, SETUP_FEE, formatPlanPrice, formatSetupFee, isPlanTier } from "@/lib/plans";
 
 describe("membership plans", () => {
+  it("defines a $297 one-time setup fee", () => {
+    expect(SETUP_FEE.unitAmount).toBe(29700);
+    expect(formatSetupFee()).toBe("$297");
+  });
   it("defines Basic, Pro, and Premium at the published prices", () => {
     expect(PLAN_LIST.map((p) => [p.id, p.unitAmount, formatPlanPrice(p)])).toEqual([
       ["basic", 4999, "$49.99"],

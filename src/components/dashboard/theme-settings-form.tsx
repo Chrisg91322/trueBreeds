@@ -26,6 +26,7 @@ export function ThemeSettingsForm({ tenant }: { tenant: Tenant }) {
           accentColor: String(form.get("accentColor") || THEME_PRESETS[preset].defaultAccent),
           logoUrl: String(form.get("logoUrl") || "") || undefined,
           heroImageUrl: String(form.get("heroImageUrl") || "") || undefined,
+          faviconUrl: String(form.get("faviconUrl") || "").trim() || null,
           tagline: String(form.get("tagline") || "") || undefined,
         });
         toast.success("Theme saved");
@@ -93,6 +94,20 @@ export function ThemeSettingsForm({ tenant }: { tenant: Tenant }) {
               defaultValue={tenant.logoUrl ?? ""}
               className="mt-1.5"
             />
+          </div>
+          <div>
+            <Label htmlFor="faviconUrl">Favicon URL</Label>
+            <Input
+              id="faviconUrl"
+              name="faviconUrl"
+              type="url"
+              defaultValue={tenant.faviconUrl ?? ""}
+              className="mt-1.5"
+              placeholder="https://…"
+            />
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              Square PNG or ICO shown in the browser tab. Leave blank to use your logo.
+            </p>
           </div>
           <div>
             <Label htmlFor="heroImageUrl">Hero photo URL</Label>

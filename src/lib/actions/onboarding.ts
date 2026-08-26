@@ -63,6 +63,7 @@ export async function updateTenantTheme(
     accentColor: string;
     logoUrl?: string;
     heroImageUrl?: string;
+    faviconUrl?: string | null;
     tagline?: string;
   }
 ) {

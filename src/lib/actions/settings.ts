@@ -82,6 +82,7 @@ export async function updateThemeSettings(data: {
   accentColor: string;
   logoUrl?: string;
   heroImageUrl?: string;
+  faviconUrl?: string | null;
   tagline?: string;
 }) {
   const session = await requireTenantSession();

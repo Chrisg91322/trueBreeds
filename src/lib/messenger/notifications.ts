@@ -88,7 +88,7 @@ export async function sendTeamInvite(args: {
   role: string;
   token: string;
 }) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3002";
   await messenger.send({
     to: args.toEmail,
     subject: `You're invited to join ${args.tenant.kennelName} on TrueBreeds`,

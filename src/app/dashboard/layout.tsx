@@ -8,7 +8,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const session = await requireTenantSession();
   const tenant = await prisma.tenant.findUniqueOrThrow({ where: { id: session.tenantId } });
 
-  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "localhost:3000";
+  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "localhost:3002";
   const protocol = rootDomain.startsWith("localhost") ? "http" : "https";
   const siteUrl = `${protocol}://${tenant.slug}.${rootDomain}`;
 
@@ -17,7 +17,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <DashboardSidebar siteUrl={siteUrl} />
       <div className="flex min-w-0 flex-1 flex-col">
         {session.impersonating && <ImpersonationBanner kennelName={tenant.kennelName} />}
-        <DashboardTopbar title="Dashboard" email={session.email} kennelName={tenant.kennelName} />
+        <DashboardTopbar
+          title="Dashboard"
+          email={session.email}
+          kennelName={tenant.kennelName}
+          siteUrl={siteUrl}
+        />
         <main className="flex-1 overflow-y-auto p-4 sm:p-6">{children}</main>
       </div>
     </div>

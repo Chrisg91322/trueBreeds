@@ -3,10 +3,10 @@ import { prisma } from "@/lib/prisma";
 
 /**
  * Resolves the root platform domain from env, e.g. "truebreeds.com" or
- * "localhost:3000" in development.
+ * "localhost:3002" in development.
  */
 export function getRootDomain() {
-  return process.env.NEXT_PUBLIC_ROOT_DOMAIN || "localhost:3000";
+  return process.env.NEXT_PUBLIC_ROOT_DOMAIN || "localhost:3002";
 }
 
 export type HostnameResolution =

@@ -43,6 +43,7 @@ export async function POST(req: NextRequest) {
             stripeSubscriptionId:
               typeof session.subscription === "string" ? session.subscription : undefined,
             status: "active",
+            setupFeePaid: true,
             ...(plan ? { plan } : {}),
           },
         });

@@ -119,8 +119,9 @@ model Tenant {
   accentColor String       @default("#7C5C42")
   headingFont String       @default("Fraunces")
   bodyFont    String       @default("Inter")
-  logoUrl     String?
+  logoUrl      String?
   heroImageUrl String?
+  faviconUrl   String?
 
   // Domains
   customDomain       String?  @unique
