@@ -52,8 +52,9 @@ export function PricingCards({
               onClick={() => onSelect(plan.id)}
               className={cn(
                 "rounded-2xl border bg-background p-5 text-left shadow-sm transition-colors sm:p-6",
-                selected || plan.highlighted ? "border-primary ring-1 ring-primary" : "hover:border-foreground/20",
-                selected && "bg-primary/5"
+                selected
+                  ? "border-primary ring-1 ring-primary bg-primary/5"
+                  : "hover:border-foreground/20"
               )}
             >
               {content}
