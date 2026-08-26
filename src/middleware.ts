@@ -27,6 +27,21 @@ export async function middleware(request: NextRequest) {
   const hostname = request.headers.get("host") || "";
   const resolution = classifyHostname(hostname);
 
+  // Supabase email confirms / OAuth sometimes land on Site URL with ?code=
+  // (often "/") instead of /auth/callback. Forward so local + production both work.
+  const authCode = url.searchParams.get("code");
+  if (
+    authCode &&
+    (resolution.kind === "root" || resolution.kind === "www") &&
+    !url.pathname.startsWith("/auth/")
+  ) {
+    const callback = new URL("/auth/callback", request.url);
+    callback.searchParams.set("code", authCode);
+    const next = url.searchParams.get("next");
+    if (next) callback.searchParams.set("next", next);
+    return NextResponse.redirect(callback);
+  }
+
   // --- Tenant public sites (subdomain or verified custom domain) ----------
   if (resolution.kind === "subdomain" || resolution.kind === "custom-domain") {
     // Never let people hit dashboard/admin/auth routes on a tenant hostname.

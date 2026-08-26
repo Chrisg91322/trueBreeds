@@ -150,10 +150,15 @@ earlier steps.
    `NEXT_PUBLIC_SUPABASE_URL`, the `anon` `public` key into
    `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and the `service_role` `secret` key into
    `SUPABASE_SERVICE_ROLE_KEY`.
-4. **Configure auth URLs**: *Authentication → URL Configuration* — set **Site
-   URL** to your production root domain (e.g. `https://truebreeds.com`) and
-   add `https://truebreeds.com/auth/callback` and
-   `https://*.truebreeds.com/**` to **Redirect URLs**.
+4. **Configure auth URLs**: *Authentication → URL Configuration*
+   - **Site URL**: `https://www.truebreeds.com` (production). Do **not** leave
+     this as `http://localhost:3000` or confirmation emails will bounce you
+     back to localhost.
+   - **Redirect URLs** (add all of these):
+     - `https://www.truebreeds.com/auth/callback`
+     - `https://truebreeds.com/auth/callback`
+     - `http://localhost:3002/auth/callback`
+     - `http://127.0.0.1:3002/auth/callback`
 5. **(Optional) Enable Google sign-in**: *Authentication → Providers → Google*.
    Create an OAuth client in the
    [Google Cloud Console credentials page](https://console.cloud.google.com/apis/credentials),
@@ -162,9 +167,11 @@ earlier steps.
 6. From your machine, with `DATABASE_URL`/`DIRECT_URL` pointed at this
    project, run:
    ```bash
-   npx prisma migrate deploy
+   npx prisma db push
    npx prisma db execute --file prisma/rls.sql --schema prisma/schema.prisma
    ```
+   Put those same Postgres URLs into Vercel (`DATABASE_URL` = pooler,
+   `DIRECT_URL` = direct) so signup/onboarding can write `users` / `tenants`.
 
 ### 2. Payments — Stripe
 
