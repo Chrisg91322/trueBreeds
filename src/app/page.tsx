@@ -58,31 +58,37 @@ export default function MarketingHomePage() {
       <MarketingHeader />
 
       <section className="border-b bg-background">
-        <div className="px-4 pt-4 pb-8 sm:px-10 sm:pt-8 sm:pb-10">
+        <div className="px-4 pt-5 pb-8 sm:px-10 sm:pt-8 sm:pb-10">
           <div className="relative overflow-hidden rounded-2xl">
-            {PLATFORM_HERO_URL ? (
-              <Image
-                src={PLATFORM_HERO_URL}
-                alt=""
-                width={2048}
-                height={605}
-                priority
-                sizes="100vw"
-                className="h-auto w-full object-contain object-bottom"
-              />
-            ) : (
-              <div className="aspect-[2048/605] w-full bg-muted" />
-            )}
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background/10 via-background/0 to-transparent" />
-            <div className="absolute inset-x-0 top-0 z-10 px-4 pt-5 text-center sm:px-10 sm:pt-10">
-              <div className="mx-auto inline-flex max-w-full items-center gap-1.5 rounded-full border border-brand-sage/40 bg-card/90 px-2.5 py-1 text-[0.7rem] font-medium tracking-wide text-primary shadow-sm sm:px-3 sm:text-xs">
-                <Sparkles className="h-3.5 w-3.5 shrink-0 text-brand-coral sm:h-4 sm:w-4" />
-                <span className="truncate">Built for dog & cat breeders</span>
+            <div className="flex flex-col md:block">
+              {/* In-flow above the photo on mobile; overlays the photo from md up. */}
+              <div className="order-1 px-1 pb-5 text-center md:absolute md:inset-x-0 md:top-0 md:z-10 md:px-10 md:pb-0 md:pt-10">
+                <div className="mx-auto inline-flex max-w-full items-center gap-1.5 rounded-full border border-brand-sage/40 bg-card/90 px-2.5 py-1 text-[0.7rem] font-medium tracking-wide text-primary shadow-sm sm:px-3 sm:text-xs">
+                  <Sparkles className="h-3.5 w-3.5 shrink-0 text-brand-coral sm:h-4 sm:w-4" />
+                  <span className="truncate">Built for dog & cat breeders</span>
+                </div>
+                <h1 className="font-heading mx-auto mt-3 max-w-3xl text-balance text-[1.7rem] font-semibold leading-tight tracking-tight sm:text-4xl md:mt-5 md:text-5xl md:leading-tight lg:text-6xl">
+                  A premium website for your kennel — live today.
+                </h1>
               </div>
-              <h1 className="font-heading mx-auto mt-3 max-w-3xl text-balance text-[1.7rem] font-semibold leading-tight tracking-tight sm:mt-5 sm:text-5xl sm:leading-tight lg:text-6xl">
-                A premium website for your kennel — live today.
-              </h1>
+
+              <div className="order-2 md:order-none">
+                {PLATFORM_HERO_URL ? (
+                  <Image
+                    src={PLATFORM_HERO_URL}
+                    alt=""
+                    width={2048}
+                    height={605}
+                    priority
+                    sizes="100vw"
+                    className="h-auto w-full object-contain object-bottom"
+                  />
+                ) : (
+                  <div className="aspect-[2048/605] w-full bg-muted" />
+                )}
+              </div>
             </div>
+            <div className="pointer-events-none absolute inset-0 hidden bg-gradient-to-b from-background/10 via-background/0 to-transparent md:block" />
           </div>
         </div>
 
