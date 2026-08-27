@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { getPublicTenant } from "@/lib/site-data";
 import { StatusPill } from "@/components/site/status-pill";
 import { DepositForm } from "@/components/site/deposit-form";
+import { WaitlistForm } from "@/components/site/waitlist-form";
+import { tenantAcceptsCardPayments } from "@/lib/reservations";
 
 export const revalidate = 60;
 
@@ -20,8 +22,8 @@ export default async function OffspringDetailPage({
   if (!offspring || !litter) notFound();
 
   const amount = offspring.depositAmount ?? litter.defaultDepositAmount ?? 0;
-  const canReserve =
-    (offspring.status === "available" || offspring.status === "upcoming") && amount > 0;
+  const canReserve = offspring.status === "available" || offspring.status === "upcoming";
+  const paymentsEnabled = await tenantAcceptsCardPayments(data.tenant.id);
 
   return (
     <div className="mx-auto max-w-5xl px-5 py-16 sm:px-8">
@@ -58,12 +60,20 @@ export default async function OffspringDetailPage({
                 offspringId={offspring.id}
                 amount={amount}
                 depositPolicy={data.tenant.depositPolicy}
+                paymentsEnabled={paymentsEnabled}
               />
             ) : (
-              <div className="rounded-2xl border site-border p-6 text-sm site-muted">
-                {offspring.status === "deposit_received" || offspring.status === "reserved"
-                  ? "This one already has a deposit — check back on our Available page for others, or join the waitlist."
-                  : "This listing isn't currently accepting deposits."}
+              <div className="space-y-6">
+                <div className="rounded-2xl border site-border p-6 text-sm site-muted">
+                  {offspring.status === "deposit_received" || offspring.status === "reserved"
+                    ? "This one is already reserved — join the waitlist for the next litter."
+                    : "This listing isn't currently accepting reservations."}
+                </div>
+                <WaitlistForm
+                  tenantId={data.tenant.id}
+                  litterId={litter.id}
+                  breed={litter.breed ?? undefined}
+                />
               </div>
             )}
           </div>

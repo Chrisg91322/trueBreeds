@@ -167,7 +167,7 @@
 .site-theme h4,
 .site-font-heading {
   font-family: var(--site-heading-font);
-  text-shadow: 0 10px 10px rgba(0, 0, 0, 0.3);
+  text-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
 }
 
 .site-accent-bg {

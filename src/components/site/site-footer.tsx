@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { AtSign, Link2, Mail, Phone, MapPin } from "lucide-react";
+import { SiteLink } from "@/components/site/site-base-path";
 
 export function SiteFooter({
   kennelName,
@@ -55,13 +55,13 @@ export function SiteFooter({
         <div className="text-sm">
           <div className="mb-3 font-semibold">Explore</div>
           <ul className="space-y-2 site-muted">
-            <li><Link href="/our-dogs" className="hover:opacity-80">Our Dogs</Link></li>
-            <li><Link href="/available" className="hover:opacity-80">Available Puppies</Link></li>
-            <li><Link href="/past-litters" className="hover:opacity-80">Past Litters</Link></li>
-            <li><Link href="/testimonials" className="hover:opacity-80">Testimonials</Link></li>
-            <li><Link href="/faq" className="hover:opacity-80">FAQ &amp; Policies</Link></li>
+            <li><SiteLink href="/our-dogs" className="hover:opacity-80">Our Dogs</SiteLink></li>
+            <li><SiteLink href="/available" className="hover:opacity-80">Available Puppies</SiteLink></li>
+            <li><SiteLink href="/past-litters" className="hover:opacity-80">Past Litters</SiteLink></li>
+            <li><SiteLink href="/testimonials" className="hover:opacity-80">Testimonials</SiteLink></li>
+            <li><SiteLink href="/faq" className="hover:opacity-80">FAQ &amp; Policies</SiteLink></li>
             {hasAffiliateProducts && (
-              <li><Link href="/recommended" className="hover:opacity-80">What We Recommend</Link></li>
+              <li><SiteLink href="/recommended" className="hover:opacity-80">What We Recommend</SiteLink></li>
             )}
           </ul>
         </div>
@@ -93,7 +93,7 @@ export function SiteFooter({
 
       <div className="border-t site-border px-5 py-6 text-center text-xs site-muted sm:px-8">
         © {new Date().getFullYear()} {kennelName}. All rights reserved. ·{" "}
-        <Link href="/faq" className="underline hover:opacity-80">Policies</Link> · Site by{" "}
+        <SiteLink href="/faq" className="underline hover:opacity-80">Policies</SiteLink> · Site by{" "}
         <a href="https://truebreeds.com" className="underline hover:opacity-80">TrueBreeds</a>
       </div>
     </footer>

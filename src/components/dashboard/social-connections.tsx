@@ -102,9 +102,8 @@ function ConnectDialog({ provider, label }: { provider: SocialProviderType; labe
         <form action={handleSubmit} className="space-y-3">
           <input type="hidden" name="provider" value={provider} />
           <p className="text-sm text-muted-foreground">
-            Full one-click sign-in is coming soon. For now, enter your handle so you can draft
-            posts here — you&apos;ll copy the caption and post manually until auto-publish is
-            enabled for {label}.
+            Enter your {label} handle to start drafting shareable posts. You can copy the caption
+            and publish from the app; direct auto-post can be turned on when you&apos;re ready.
           </p>
           <div>
             <Label htmlFor="accountName">{label} handle</Label>

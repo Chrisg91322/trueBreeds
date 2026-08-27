@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { getPublicTenant } from "@/lib/site-data";
 import { SectionHeading } from "@/components/site/section-heading";
 import { OffspringCard } from "@/components/site/offspring-card";
+import { WaitlistForm } from "@/components/site/waitlist-form";
 
 export const revalidate = 60;
 
@@ -15,31 +15,44 @@ export default async function AvailablePage({
   const data = await getPublicTenant(slug);
   if (!data) notFound();
 
+  const upcoming = data.upcomingLitters[0];
+
   return (
     <div className="mx-auto max-w-6xl px-5 py-16 sm:px-8">
       <SectionHeading
         eyebrow="Available"
         title="Available puppies & kittens"
-        description={data.tenant.depositPolicy ?? undefined}
+        description={data.tenant.depositPolicy ?? "Browse current litters and reserve your favorite."}
       />
       {data.availableOffspring.length === 0 ? (
-        <div className="mt-10 rounded-2xl border site-border site-surface p-10 text-center">
-          <p className="site-muted">
-            Nothing is currently available. Reach out to join our waitlist for the next litter.
-          </p>
-          <Link
-            href="/contact"
-            className="site-accent-bg mt-5 inline-block rounded-full px-6 py-3 text-sm font-semibold text-white"
-          >
-            Join the Waitlist
-          </Link>
+        <div className="mt-10 grid gap-8 lg:grid-cols-2 lg:items-start">
+          <div className="rounded-2xl border site-border site-surface p-8">
+            <p className="site-muted">
+              Nothing is currently available. Join the waitlist and we&apos;ll reach out when the
+              next litter is ready to reserve.
+            </p>
+          </div>
+          <WaitlistForm
+            tenantId={data.tenant.id}
+            litterId={upcoming?.id}
+            breed={upcoming?.breed ?? data.tenant.breeds[0]}
+          />
         </div>
       ) : (
-        <div className="mt-10 grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4">
-          {data.availableOffspring.map((o) => (
-            <OffspringCard key={o.id} offspring={o} />
-          ))}
-        </div>
+        <>
+          <div className="mt-10 grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4">
+            {data.availableOffspring.map((o) => (
+              <OffspringCard key={o.id} offspring={o} />
+            ))}
+          </div>
+          <div className="mt-16 max-w-xl">
+            <WaitlistForm
+              tenantId={data.tenant.id}
+              litterId={upcoming?.id}
+              breed={upcoming?.breed ?? data.tenant.breeds[0]}
+            />
+          </div>
+        </>
       )}
     </div>
   );

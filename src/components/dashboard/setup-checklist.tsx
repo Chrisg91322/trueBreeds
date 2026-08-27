@@ -4,12 +4,12 @@ import type { OnboardingProgress } from "@prisma/client";
 import { Progress } from "@/components/ui/progress";
 
 const STEPS: { key: keyof OnboardingProgress; label: string; href: string }[] = [
-  { key: "billingComplete", label: "Choose a membership & subscribe", href: "/onboarding?step=billing" },
   { key: "profileComplete", label: "Add kennel name, breeds & slug", href: "/onboarding?step=profile" },
   { key: "themeComplete", label: "Pick a theme & upload photos", href: "/onboarding?step=theme" },
   { key: "firstLitterComplete", label: "Add your first litter", href: "/onboarding?step=litter" },
   { key: "stripeConnected", label: "Connect Stripe for deposits", href: "/onboarding?step=stripe" },
   { key: "socialsComplete", label: "Connect socials & Amazon (optional)", href: "/onboarding?step=extras" },
+  { key: "billingComplete", label: "Choose a membership & subscribe", href: "/onboarding?step=billing" },
   { key: "published", label: "Publish your site", href: "/onboarding?step=publish" },
 ];
 

@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ImageUploadField } from "@/components/dashboard/image-upload-field";
 
 export function AnimalForm({
   action,
@@ -79,9 +80,17 @@ export function AnimalForm({
         </Field>
       </div>
 
-      <Field label="Cover photo URL" htmlFor="coverPhotoUrl">
-        <Input id="coverPhotoUrl" name="coverPhotoUrl" type="url" defaultValue={animal?.coverPhotoUrl ?? ""} />
-      </Field>
+      <div>
+        <Label>Cover photo</Label>
+        <div className="mt-1.5">
+          <ImageUploadField
+            name="coverPhotoUrl"
+            folder="animals"
+            label="cover photo"
+            defaultValue={animal?.coverPhotoUrl}
+          />
+        </div>
+      </div>
 
       <Field label="Bio" htmlFor="bio">
         <Textarea id="bio" name="bio" rows={5} defaultValue={animal?.bio ?? ""} />

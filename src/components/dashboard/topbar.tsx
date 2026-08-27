@@ -27,11 +27,13 @@ export function DashboardTopbar({
   email,
   kennelName,
   siteUrl,
+  siteLinkLabel = "View live site",
 }: {
   title: string;
   email: string;
   kennelName: string;
   siteUrl: string;
+  siteLinkLabel?: string;
 }) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -44,7 +46,7 @@ export function DashboardTopbar({
   }
 
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b bg-background px-3 sm:h-16 sm:px-6">
+    <header className="flex min-h-14 shrink-0 items-center justify-between gap-3 border-b bg-background px-3 py-2 sm:min-h-16 sm:px-6">
       <div className="flex min-w-0 items-center gap-2 sm:gap-3">
         <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
           <SheetTrigger
@@ -67,7 +69,7 @@ export function DashboardTopbar({
                 className="flex items-center justify-between rounded-lg border px-3 py-2.5 text-sm font-medium hover:bg-sidebar-accent"
                 onClick={() => setMenuOpen(false)}
               >
-                View live site
+                {siteLinkLabel}
                 <ExternalLink className="h-3.5 w-3.5 shrink-0" />
               </a>
             </div>
@@ -79,21 +81,32 @@ export function DashboardTopbar({
         </div>
       </div>
 
-      <DropdownMenu>
-        <DropdownMenuTrigger className="flex shrink-0 items-center gap-2 rounded-full outline-none">
-          <Avatar className="h-8 w-8">
-            <AvatarFallback>{email.slice(0, 1).toUpperCase()}</AvatarFallback>
-          </Avatar>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <div className="max-w-[14rem] truncate px-2 py-1.5 text-sm font-medium">{email}</div>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => router.push("/dashboard/settings")}>
-            Settings
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleSignOut}>Sign out</DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <div className="flex shrink-0 flex-col items-end gap-1">
+        <DropdownMenu>
+          <DropdownMenuTrigger className="flex items-center gap-2 rounded-full outline-none">
+            <Avatar className="h-8 w-8">
+              <AvatarFallback>{email.slice(0, 1).toUpperCase()}</AvatarFallback>
+            </Avatar>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <div className="max-w-[14rem] truncate px-2 py-1.5 text-sm font-medium">{email}</div>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => router.push("/dashboard/settings")}>
+              Settings
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleSignOut}>Sign out</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <a
+          href={siteUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 text-[0.7rem] font-medium text-muted-foreground hover:text-foreground"
+        >
+          {siteLinkLabel}
+          <ExternalLink className="h-3 w-3 shrink-0" />
+        </a>
+      </div>
     </header>
   );
 }

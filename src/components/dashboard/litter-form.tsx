@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ImageUploadField } from "@/components/dashboard/image-upload-field";
 
 type AnimalOption = { id: string; name: string; sex: "male" | "female" };
 
@@ -110,9 +111,17 @@ export function LitterForm({
         </Field>
       </div>
 
-      <Field label="Cover photo URL" htmlFor="coverPhotoUrl">
-        <Input id="coverPhotoUrl" name="coverPhotoUrl" type="url" defaultValue={litter?.coverPhotoUrl ?? ""} />
-      </Field>
+      <div>
+        <Label>Cover photo</Label>
+        <div className="mt-1.5">
+          <ImageUploadField
+            name="coverPhotoUrl"
+            folder="litters"
+            label="cover photo"
+            defaultValue={litter?.coverPhotoUrl}
+          />
+        </div>
+      </div>
 
       <Field label="Description" htmlFor="description">
         <Textarea id="description" name="description" rows={4} defaultValue={litter?.description ?? ""} />

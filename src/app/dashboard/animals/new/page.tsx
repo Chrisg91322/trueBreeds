@@ -12,7 +12,7 @@ export default async function NewAnimalPage() {
       <div>
         <h2 className="text-xl font-semibold">Add an animal</h2>
         <p className="text-sm text-muted-foreground">
-          This shows up on your public &quot;Our Dogs&quot; page once saved.
+          This shows up on your public &quot;Our Pets&quot; page once saved.
         </p>
       </div>
       <AnimalForm action={createAnimal} defaultSpecies={tenant.species} />

@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ImageUploadField } from "@/components/dashboard/image-upload-field";
 
 export function OffspringForm({
   action,
@@ -78,9 +79,17 @@ export function OffspringForm({
         </Field>
       </div>
 
-      <Field label="Cover photo URL" htmlFor="coverPhotoUrl">
-        <Input id="coverPhotoUrl" name="coverPhotoUrl" type="url" defaultValue={offspring?.coverPhotoUrl ?? ""} />
-      </Field>
+      <div>
+        <Label>Cover photo</Label>
+        <div className="mt-1.5">
+          <ImageUploadField
+            name="coverPhotoUrl"
+            folder="offspring"
+            label="cover photo"
+            defaultValue={offspring?.coverPhotoUrl}
+          />
+        </div>
+      </div>
 
       <Field label="Notes" htmlFor="notes">
         <Textarea id="notes" name="notes" rows={4} defaultValue={offspring?.notes ?? ""} />

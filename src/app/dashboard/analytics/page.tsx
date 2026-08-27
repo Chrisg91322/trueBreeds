@@ -43,7 +43,10 @@ export default async function AnalyticsDashboardPage() {
     <div className="mx-auto max-w-5xl space-y-6">
       <div>
         <h2 className="text-xl font-semibold">Analytics</h2>
-        <p className="text-sm text-muted-foreground">Last {WINDOW_DAYS} days of activity on your site.</p>
+        <p className="text-sm text-muted-foreground">
+          Premium SEO &amp; site analytics — page views, inquiries, waitlist signups, reservations,
+          and Amazon clicks for the last {WINDOW_DAYS} days.
+        </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

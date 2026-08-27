@@ -1,7 +1,7 @@
 import Image from "next/image";
-import Link from "next/link";
 import type { Offspring, Litter } from "@prisma/client";
 import { StatusPill } from "./status-pill";
+import { SiteLink } from "@/components/site/site-base-path";
 
 export function OffspringCard({
   offspring,
@@ -9,7 +9,7 @@ export function OffspringCard({
   offspring: Offspring & { litter: Pick<Litter, "id" | "breed" | "whelpDate" | "goHomeDate"> };
 }) {
   return (
-    <Link
+    <SiteLink
       href={`/available/${offspring.id}`}
       className="group block overflow-hidden rounded-2xl border site-border site-surface transition-shadow hover:shadow-lg"
     >
@@ -51,6 +51,6 @@ export function OffspringCard({
           </div>
         )}
       </div>
-    </Link>
+    </SiteLink>
   );
 }

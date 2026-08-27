@@ -80,8 +80,8 @@ export async function updatePolicySettings(formData: FormData) {
 export async function updateThemeSettings(data: {
   themePreset: ThemePresetKey;
   accentColor: string;
-  logoUrl?: string;
-  heroImageUrl?: string;
+  logoUrl?: string | null;
+  heroImageUrl?: string | null;
   faviconUrl?: string | null;
   tagline?: string;
 }) {

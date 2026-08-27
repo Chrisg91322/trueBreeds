@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPublicTenant } from "@/lib/site-data";
 import { Hero } from "@/components/site/hero";
@@ -8,6 +7,7 @@ import { OffspringCard } from "@/components/site/offspring-card";
 import { AnimalCard } from "@/components/site/animal-card";
 import { TestimonialCard } from "@/components/site/testimonial-card";
 import { Gallery } from "@/components/site/gallery";
+import { SiteLink } from "@/components/site/site-base-path";
 
 export const revalidate = 60;
 
@@ -80,9 +80,9 @@ export default async function TenantHomePage({
                 : "Nothing available this moment — join the waitlist"
             }
           />
-          <Link href="/available" className="site-accent-text text-sm font-semibold hover:opacity-80">
-            View all →
-          </Link>
+          <SiteLink href="/available" className="site-accent-text text-sm font-semibold hover:opacity-80">
+            Reserve now →
+          </SiteLink>
         </div>
         {availableOffspring.length > 0 ? (
           <div className="mt-10 grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4">
@@ -96,12 +96,12 @@ export default async function TenantHomePage({
               We don&apos;t have any puppies available right now, but we&apos;d love to add you
               to our waitlist for the next litter.
             </p>
-            <Link
+            <SiteLink
               href="/contact"
               className="site-accent-bg mt-5 inline-block rounded-full px-6 py-3 text-sm font-semibold text-white"
             >
               Join the Waitlist
-            </Link>
+            </SiteLink>
           </div>
         )}
       </section>

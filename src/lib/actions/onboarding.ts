@@ -61,8 +61,8 @@ export async function updateTenantTheme(
   data: {
     themePreset: ThemePresetKey;
     accentColor: string;
-    logoUrl?: string;
-    heroImageUrl?: string;
+    logoUrl?: string | null;
+    heroImageUrl?: string | null;
     faviconUrl?: string | null;
     tagline?: string;
   }
@@ -112,14 +112,44 @@ export async function createFirstLitter(
 }
 
 export async function publishTenant(tenantId: string) {
+  const session = await getSessionContext();
+  if (!session?.tenantId || session.tenantId !== tenantId) {
+    throw new Error("Not authorized");
+  }
+
+  const progress = await prisma.onboardingProgress.findUnique({ where: { tenantId } });
+  if (!progress?.billingComplete) {
+    throw new Error("Subscribe to a membership before publishing your site.");
+  }
+
   await prisma.$transaction([
     prisma.tenant.update({ where: { id: tenantId }, data: { status: "active" } }),
     prisma.onboardingProgress.upsert({
       where: { tenantId },
       update: { published: true },
-      create: { tenantId, published: true },
+      create: { tenantId, published: true, billingComplete: true },
     }),
   ]);
   revalidatePath("/onboarding");
   revalidatePath("/dashboard");
+}
+
+/**
+ * Sites that were marked published without a paid membership go back to
+ * onboarding so public pages stay offline until they subscribe and publish.
+ */
+export async function revokeUnpaidPublish(tenantId: string) {
+  const progress = await prisma.onboardingProgress.findUnique({ where: { tenantId } });
+  if (!progress || progress.billingComplete || !progress.published) return;
+
+  await prisma.$transaction([
+    prisma.tenant.update({
+      where: { id: tenantId },
+      data: { status: "onboarding" },
+    }),
+    prisma.onboardingProgress.update({
+      where: { tenantId },
+      data: { published: false },
+    }),
+  ]);
 }

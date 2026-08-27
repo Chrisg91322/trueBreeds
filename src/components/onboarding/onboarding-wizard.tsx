@@ -26,15 +26,17 @@ import {
   publishTenant,
 } from "@/lib/actions/onboarding";
 import { PricingCards } from "@/components/site/pricing-cards";
+import { ImageUploadField } from "@/components/dashboard/image-upload-field";
+import { PreviewSiteButton } from "@/components/onboarding/preview-site-button";
 import { formatPlanPrice, getPlan, isPlanTier, type PlanTier } from "@/lib/plans";
 
 const STEPS = [
-  { key: "billing", label: "Billing" },
   { key: "profile", label: "Kennel Profile" },
   { key: "theme", label: "Theme" },
   { key: "litter", label: "First Litter" },
   { key: "stripe", label: "Payments" },
   { key: "extras", label: "Extras" },
+  { key: "billing", label: "Billing" },
   { key: "publish", label: "Publish" },
 ] as const;
 
@@ -83,15 +85,21 @@ export function OnboardingWizard({
       </ol>
 
       <div className="rounded-2xl border bg-card p-4 sm:p-6">
-        {step === "billing" && <BillingStep initialPlan={initialPlan} />}
         {step === "profile" && <ProfileStep tenant={tenant} onDone={() => setStep("theme")} />}
         {step === "theme" && <ThemeStep tenant={tenant} onDone={() => setStep("litter")} />}
         {step === "litter" && (
           <LitterStep tenant={tenant} onDone={() => setStep("stripe")} />
         )}
         {step === "stripe" && <StripeStep tenant={tenant} onDone={() => setStep("extras")} />}
-        {step === "extras" && <ExtrasStep tenant={tenant} onDone={() => setStep("publish")} />}
-        {step === "publish" && <PublishStep tenant={tenant} />}
+        {step === "extras" && <ExtrasStep tenant={tenant} onDone={() => setStep("billing")} />}
+        {step === "billing" && <BillingStep initialPlan={initialPlan} billingComplete={progress.billingComplete} onDone={() => setStep("publish")} />}
+        {step === "publish" && (
+          <PublishStep
+            tenant={tenant}
+            billingComplete={progress.billingComplete}
+            onNeedBilling={() => setStep("billing")}
+          />
+        )}
       </div>
     </div>
   );
@@ -109,9 +117,34 @@ function stepComplete(progress: OnboardingProgress, step: StepKey) {
   }
 }
 
-function BillingStep({ initialPlan }: { initialPlan?: string }) {
+function BillingStep({
+  initialPlan,
+  billingComplete,
+  onDone,
+}: {
+  initialPlan?: string;
+  billingComplete: boolean;
+  onDone: () => void;
+}) {
   const [loading, setLoading] = useState(false);
   const [plan, setPlan] = useState<PlanTier>(isPlanTier(initialPlan) ? initialPlan : "pro");
+
+  if (billingComplete) {
+    return (
+      <div className="space-y-4 text-center">
+        <h2 className="text-lg font-semibold">Membership active</h2>
+        <p className="text-sm text-muted-foreground">
+          You&apos;re subscribed. Preview your site, then publish so visitors can find you.
+        </p>
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <PreviewSiteButton />
+          <Button onClick={onDone} size="lg">
+            Continue to publish
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   async function handlePay() {
     setLoading(true);
@@ -139,10 +172,13 @@ function BillingStep({ initialPlan }: { initialPlan?: string }) {
         </p>
       </div>
       <PricingCards selectedPlan={plan} onSelect={setPlan} />
-      <Button onClick={handlePay} disabled={loading} size="lg">
-        {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        Continue with {getPlan(plan).name} ({formatPlanPrice(plan)}/mo + $297 setup)
-      </Button>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button onClick={handlePay} disabled={loading} size="lg">
+          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Continue with {getPlan(plan).name} ({formatPlanPrice(plan)}/mo + $297 setup)
+        </Button>
+        <PreviewSiteButton />
+      </div>
     </div>
   );
 }
@@ -223,8 +259,8 @@ function ThemeStep({ tenant, onDone }: { tenant: Tenant; onDone: () => void }) {
         await updateTenantTheme(tenant.id, {
           themePreset: preset,
           accentColor: String(form.get("accentColor") || THEME_PRESETS[preset].defaultAccent),
-          logoUrl: String(form.get("logoUrl") || "") || undefined,
-          heroImageUrl: String(form.get("heroImageUrl") || "") || undefined,
+          logoUrl: String(form.get("logoUrl") || "").trim() || null,
+          heroImageUrl: String(form.get("heroImageUrl") || "").trim() || null,
           faviconUrl: String(form.get("faviconUrl") || "").trim() || null,
           tagline: String(form.get("tagline") || "") || undefined,
         });
@@ -274,31 +310,53 @@ function ThemeStep({ tenant, onDone }: { tenant: Tenant; onDone: () => void }) {
         <Input id="tagline" name="tagline" defaultValue={tenant.tagline ?? ""} className="mt-1.5" placeholder="Health-tested, home-raised Labradors" />
       </div>
       <div>
-        <Label htmlFor="logoUrl">Logo image URL</Label>
-        <Input id="logoUrl" name="logoUrl" type="url" defaultValue={tenant.logoUrl ?? ""} className="mt-1.5" />
+        <Label>Logo</Label>
+        <div className="mt-1.5">
+          <ImageUploadField
+            name="logoUrl"
+            folder="theme"
+            label="logo"
+            aspect="square"
+            defaultValue={tenant.logoUrl}
+          />
+        </div>
       </div>
       <div>
-        <Label htmlFor="faviconUrl">Favicon URL</Label>
-        <Input
-          id="faviconUrl"
-          name="faviconUrl"
-          type="url"
-          defaultValue={tenant.faviconUrl ?? ""}
-          className="mt-1.5"
-          placeholder="https://…"
-        />
-        <p className="mt-1.5 text-xs text-muted-foreground">
-          Square PNG or ICO shown in the browser tab. Leave blank to use your logo.
-        </p>
+        <Label>Favicon</Label>
+        <div className="mt-1.5">
+          <ImageUploadField
+            name="faviconUrl"
+            folder="theme"
+            label="favicon"
+            aspect="square"
+            acceptIco
+            hint="Square PNG or ICO for the browser tab. Leave blank to use your logo."
+            defaultValue={tenant.faviconUrl}
+          />
+        </div>
       </div>
       <div>
-        <Label htmlFor="heroImageUrl">Hero photo URL</Label>
-        <Input id="heroImageUrl" name="heroImageUrl" type="url" defaultValue={tenant.heroImageUrl ?? ""} className="mt-1.5" />
+        <Label>Hero photo</Label>
+        <div className="mt-1.5">
+          <ImageUploadField
+            name="heroImageUrl"
+            folder="theme"
+            label="hero photo"
+            aspect="wide"
+            defaultValue={tenant.heroImageUrl}
+          />
+        </div>
       </div>
-      <Button type="submit" disabled={isPending}>
-        {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        Save & continue
-      </Button>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button type="submit" disabled={isPending}>
+          {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Save & continue
+        </Button>
+        <PreviewSiteButton />
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Save first if you just changed photos or colors — preview shows your last saved look.
+      </p>
     </form>
   );
 }
@@ -398,8 +456,8 @@ function StripeStep({ tenant, onDone }: { tenant: Tenant; onDone: () => void }) 
     <div className="space-y-4">
       <h2 className="text-lg font-semibold">Connect Stripe for deposits</h2>
       <p className="text-sm text-muted-foreground">
-        Buyer deposits go straight into your own bank account via Stripe Connect — the platform
-        never touches your money. Takes about 5 minutes.
+        Optional for now. Buyers can already Reserve now on your site — their request lands in
+        Leads &amp; Deposits. Connect Stripe later so they can pay the deposit online to your bank.
       </p>
       <div className="flex gap-2">
         <Button onClick={handleConnect} disabled={loading}>
@@ -428,10 +486,11 @@ function ExtrasStep({ tenant, onDone }: { tenant: Tenant; onDone: () => void }) 
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold">Optional: socials & Amazon</h2>
+      <h2 className="text-lg font-semibold">Growth tools (Premium)</h2>
       <p className="text-sm text-muted-foreground">
-        Connect Facebook/Instagram/YouTube for auto-posting, and add your Amazon Associates tag
-        for the &quot;What We Recommend&quot; page. You can always do this later from Settings.
+        Connect Facebook, Instagram, YouTube, or TikTok to draft &amp; share posts, and add your
+        Amazon Associates tag for a &quot;What We Recommend&quot; shop page. Both are ready in the
+        dashboard — you can finish setup anytime.
       </p>
       <div className="flex gap-2">
         <Button variant="outline" render={<Link href="/dashboard/social" />}>
@@ -449,17 +508,47 @@ function ExtrasStep({ tenant, onDone }: { tenant: Tenant; onDone: () => void }) 
   );
 }
 
-function PublishStep({ tenant }: { tenant: Tenant }) {
+function PublishStep({
+  tenant,
+  billingComplete,
+  onNeedBilling,
+}: {
+  tenant: Tenant;
+  billingComplete: boolean;
+  onNeedBilling: () => void;
+}) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
   function handlePublish() {
     startTransition(async () => {
-      await publishTenant(tenant.id);
-      toast.success("Your site is live!");
-      router.push("/dashboard");
-      router.refresh();
+      try {
+        await publishTenant(tenant.id);
+        toast.success("Your site is live!");
+        router.push("/dashboard");
+        router.refresh();
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Could not publish");
+      }
     });
+  }
+
+  if (!billingComplete) {
+    return (
+      <div className="space-y-4 text-center">
+        <h2 className="text-lg font-semibold">Subscribe before publishing</h2>
+        <p className="text-sm text-muted-foreground">
+          Preview your site anytime. Choose a membership to unlock the public URL{" "}
+          <strong>{tenant.slug}.truebreeds.com</strong>.
+        </p>
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <PreviewSiteButton />
+          <Button onClick={onNeedBilling} size="lg">
+            Choose a membership
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -468,10 +557,13 @@ function PublishStep({ tenant }: { tenant: Tenant }) {
       <p className="text-sm text-muted-foreground">
         Your site will be live at <strong>{tenant.slug}.truebreeds.com</strong>.
       </p>
-      <Button onClick={handlePublish} disabled={isPending} size="lg">
-        {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        Publish my site
-      </Button>
+      <div className="flex flex-wrap items-center justify-center gap-2">
+        <PreviewSiteButton />
+        <Button onClick={handlePublish} disabled={isPending} size="lg">
+          {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Publish my site
+        </Button>
+      </div>
     </div>
   );
 }

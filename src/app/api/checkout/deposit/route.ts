@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { depositCheckoutSchema } from "@/lib/validations/public";
 import { createDepositCheckoutSession } from "@/lib/stripe/connect";
+import { createReservationRequest, tenantAcceptsCardPayments } from "@/lib/reservations";
 import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
@@ -13,17 +14,24 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const session = await createDepositCheckoutSession(parsed.data);
-    await prisma.analyticsEvent.create({
-      data: {
-        tenantId: parsed.data.tenantId,
-        type: "deposit_started",
-        metadata: { offspringId: parsed.data.offspringId },
-      },
-    });
-    return NextResponse.json({ url: session.url });
+    const canCharge = await tenantAcceptsCardPayments(parsed.data.tenantId);
+
+    if (canCharge) {
+      const session = await createDepositCheckoutSession(parsed.data);
+      await prisma.analyticsEvent.create({
+        data: {
+          tenantId: parsed.data.tenantId,
+          type: "deposit_started",
+          metadata: { offspringId: parsed.data.offspringId, mode: "stripe" },
+        },
+      });
+      return NextResponse.json({ url: session.url, mode: "checkout" });
+    }
+
+    const reservation = await createReservationRequest(parsed.data);
+    return NextResponse.json(reservation);
   } catch (err) {
-    console.error("createDepositCheckoutSession failed", err);
+    console.error("deposit/reservation failed", err);
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Checkout failed" },
       { status: 400 }

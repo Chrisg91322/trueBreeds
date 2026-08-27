@@ -20,8 +20,8 @@ export default async function AffiliateDashboardPage() {
       <div>
         <h2 className="text-xl font-semibold">Amazon Recommendations</h2>
         <p className="text-sm text-muted-foreground">
-          Curate a &quot;What We Recommend&quot; page for buyers, and earn a commission on
-          qualifying Amazon purchases.
+          Premium Amazon Affiliates page — curate a &quot;What We Recommend&quot; shop for buyers and
+          earn commission on qualifying purchases.
         </p>
       </div>
 

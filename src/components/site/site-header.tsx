@@ -1,12 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
+import { SiteLink } from "@/components/site/site-base-path";
 
 const NAV_LINKS = [
-  { href: "", label: "Home" },
+  { href: "/", label: "Home" },
   { href: "/our-dogs", label: "Our Dogs" },
   { href: "/available", label: "Available" },
   { href: "/past-litters", label: "Past Litters" },
@@ -19,16 +19,21 @@ const NAV_LINKS = [
 export function SiteHeader({
   kennelName,
   logoUrl,
+  hasAffiliateProducts,
 }: {
   kennelName: string;
   logoUrl?: string | null;
+  hasAffiliateProducts?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const links = hasAffiliateProducts
+    ? [...NAV_LINKS.slice(0, -1), { href: "/recommended", label: "Recommended" }, NAV_LINKS[NAV_LINKS.length - 1]]
+    : NAV_LINKS;
 
   return (
     <header className="site-surface sticky top-0 z-40 border-b site-border backdrop-blur supports-[backdrop-filter]:bg-opacity-90">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4 sm:px-8">
-        <Link href="/" className="flex items-center gap-3">
+        <SiteLink href="/" className="flex items-center gap-3">
           {logoUrl ? (
             <Image
               src={logoUrl}
@@ -48,26 +53,26 @@ export function SiteHeader({
           <span className="site-font-heading max-w-[12rem] truncate text-base font-semibold tracking-tight sm:max-w-none sm:text-lg">
             {kennelName}
           </span>
-        </Link>
+        </SiteLink>
 
-        <nav className="hidden items-center gap-7 md:flex">
-          {NAV_LINKS.map((link) => (
-            <Link
+        <nav className="hidden items-center gap-5 lg:gap-7 md:flex">
+          {links.map((link) => (
+            <SiteLink
               key={link.label}
-              href={link.href || "/"}
+              href={link.href}
               className="text-sm font-medium site-muted transition-colors hover:opacity-80"
             >
               {link.label}
-            </Link>
+            </SiteLink>
           ))}
         </nav>
 
-        <Link
+        <SiteLink
           href="/available"
           className="hidden rounded-full site-accent-bg px-5 py-2.5 text-sm font-semibold text-white transition-transform hover:scale-[1.02] md:inline-block"
         >
-          View Available
-        </Link>
+          Reserve now
+        </SiteLink>
 
         <button
           className="inline-flex h-10 w-10 items-center justify-center rounded-full border site-border md:hidden"
@@ -80,23 +85,23 @@ export function SiteHeader({
 
       {open && (
         <nav className="flex flex-col gap-1 border-t site-border px-5 pb-4 md:hidden">
-          {NAV_LINKS.map((link) => (
-            <Link
+          {links.map((link) => (
+            <SiteLink
               key={link.label}
-              href={link.href || "/"}
+              href={link.href}
               className="rounded-lg px-2 py-2.5 text-sm font-medium site-muted hover:opacity-80"
               onClick={() => setOpen(false)}
             >
               {link.label}
-            </Link>
+            </SiteLink>
           ))}
-          <Link
+          <SiteLink
             href="/available"
             className="mt-2 rounded-full site-accent-bg px-5 py-2.5 text-center text-sm font-semibold text-white"
             onClick={() => setOpen(false)}
           >
-            View Available
-          </Link>
+            Reserve now
+          </SiteLink>
         </nav>
       )}
     </header>

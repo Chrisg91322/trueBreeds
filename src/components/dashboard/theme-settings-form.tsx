@@ -11,6 +11,7 @@ import { Loader2 } from "lucide-react";
 import { THEME_PRESETS, type ThemePresetKey } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import { updateThemeSettings } from "@/lib/actions/settings";
+import { ImageUploadField } from "@/components/dashboard/image-upload-field";
 
 export function ThemeSettingsForm({ tenant }: { tenant: Tenant }) {
   const [preset, setPreset] = useState<ThemePresetKey>(tenant.themePreset);
@@ -24,8 +25,8 @@ export function ThemeSettingsForm({ tenant }: { tenant: Tenant }) {
         await updateThemeSettings({
           themePreset: preset,
           accentColor: String(form.get("accentColor") || THEME_PRESETS[preset].defaultAccent),
-          logoUrl: String(form.get("logoUrl") || "") || undefined,
-          heroImageUrl: String(form.get("heroImageUrl") || "") || undefined,
+          logoUrl: String(form.get("logoUrl") || "").trim() || null,
+          heroImageUrl: String(form.get("heroImageUrl") || "").trim() || null,
           faviconUrl: String(form.get("faviconUrl") || "").trim() || null,
           tagline: String(form.get("tagline") || "") || undefined,
         });
@@ -86,38 +87,42 @@ export function ThemeSettingsForm({ tenant }: { tenant: Tenant }) {
             />
           </div>
           <div>
-            <Label htmlFor="logoUrl">Logo image URL</Label>
-            <Input
-              id="logoUrl"
-              name="logoUrl"
-              type="url"
-              defaultValue={tenant.logoUrl ?? ""}
-              className="mt-1.5"
-            />
+            <Label>Logo</Label>
+            <div className="mt-1.5">
+              <ImageUploadField
+                name="logoUrl"
+                folder="theme"
+                label="logo"
+                aspect="square"
+                defaultValue={tenant.logoUrl}
+              />
+            </div>
           </div>
           <div>
-            <Label htmlFor="faviconUrl">Favicon URL</Label>
-            <Input
-              id="faviconUrl"
-              name="faviconUrl"
-              type="url"
-              defaultValue={tenant.faviconUrl ?? ""}
-              className="mt-1.5"
-              placeholder="https://…"
-            />
-            <p className="mt-1.5 text-xs text-muted-foreground">
-              Square PNG or ICO shown in the browser tab. Leave blank to use your logo.
-            </p>
+            <Label>Favicon</Label>
+            <div className="mt-1.5">
+              <ImageUploadField
+                name="faviconUrl"
+                folder="theme"
+                label="favicon"
+                aspect="square"
+                acceptIco
+                hint="Square PNG or ICO for the browser tab. Leave blank to use your logo."
+                defaultValue={tenant.faviconUrl}
+              />
+            </div>
           </div>
           <div>
-            <Label htmlFor="heroImageUrl">Hero photo URL</Label>
-            <Input
-              id="heroImageUrl"
-              name="heroImageUrl"
-              type="url"
-              defaultValue={tenant.heroImageUrl ?? ""}
-              className="mt-1.5"
-            />
+            <Label>Hero photo</Label>
+            <div className="mt-1.5">
+              <ImageUploadField
+                name="heroImageUrl"
+                folder="theme"
+                label="hero photo"
+                aspect="wide"
+                defaultValue={tenant.heroImageUrl}
+              />
+            </div>
           </div>
           <Button type="submit" disabled={isPending}>
             {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

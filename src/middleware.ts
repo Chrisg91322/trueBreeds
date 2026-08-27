@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { classifyHostname, resolveTenantForHostname } from "@/lib/tenant-resolve";
 import { updateSupabaseSession } from "@/lib/supabase/middleware";
+import { prisma } from "@/lib/prisma";
 
 // Runs in the Node.js runtime (not edge) so we can query Postgres directly
 // via Prisma to resolve tenants by hostname, and so Supabase's SSR helpers
@@ -42,13 +43,59 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(callback);
   }
 
+  // --- Owner-only site preview on the platform domain ----------------------
+  if (
+    (resolution.kind === "root" || resolution.kind === "www") &&
+    (url.pathname === "/preview" || url.pathname.startsWith("/preview/"))
+  ) {
+    const sessionResponse = NextResponse.next();
+    const user = await updateSupabaseSession(request, sessionResponse);
+    if (!user) {
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("next", url.pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    const membership = await prisma.tenantMember.findFirst({
+      where: { userId: user.id },
+      orderBy: { createdAt: "asc" },
+      select: {
+        tenant: { select: { id: true, slug: true, status: true } },
+      },
+    });
+
+    if (!membership?.tenant) {
+      return NextResponse.redirect(new URL("/onboarding", request.url));
+    }
+
+    const { tenant } = membership;
+    if (tenant.status === "suspended" || tenant.status === "cancelled") {
+      return NextResponse.rewrite(
+        new URL(`/unavailable?slug=${tenant.slug}`, request.url)
+      );
+    }
+
+    const rest = url.pathname.slice("/preview".length) || "/";
+    const rewritePath = `/${tenant.slug}${rest === "/" ? "" : rest}`;
+    const rewrite = NextResponse.rewrite(new URL(`${rewritePath}${url.search}`, request.url));
+    rewrite.headers.set("x-truebreeds-preview", "1");
+    rewrite.headers.set("x-truebreeds-tenant-slug", tenant.slug);
+    rewrite.headers.set("x-truebreeds-tenant-id", tenant.id);
+    // Preserve refreshed auth cookies from the session helper.
+    sessionResponse.cookies.getAll().forEach((cookie) => {
+      rewrite.cookies.set(cookie);
+    });
+    return rewrite;
+  }
+
   // --- Tenant public sites (subdomain or verified custom domain) ----------
   if (resolution.kind === "subdomain" || resolution.kind === "custom-domain") {
     // Never let people hit dashboard/admin/auth routes on a tenant hostname.
     if (
       DASHBOARD_PREFIXES.some((p) => url.pathname.startsWith(p)) ||
       url.pathname.startsWith(ADMIN_PREFIX) ||
-      AUTH_PREFIXES.some((p) => url.pathname.startsWith(p))
+      AUTH_PREFIXES.some((p) => url.pathname.startsWith(p)) ||
+      url.pathname.startsWith("/preview")
     ) {
       return NextResponse.redirect(
         `${url.protocol}//${getAppHost(request)}${url.pathname}${url.search}`
@@ -75,7 +122,12 @@ export async function middleware(request: NextRequest) {
       return response;
     }
 
-    if (tenant.status === "suspended" || tenant.status === "cancelled") {
+    if (
+      tenant.status === "suspended" ||
+      tenant.status === "cancelled" ||
+      !tenant.onboarding?.published ||
+      !tenant.onboarding?.billingComplete
+    ) {
       const response = NextResponse.rewrite(
         new URL(`/unavailable?slug=${tenant.slug}`, request.url)
       );

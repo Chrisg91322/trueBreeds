@@ -1,5 +1,5 @@
 import Image from "next/image";
-import Link from "next/link";
+import { SiteLink } from "@/components/site/site-base-path";
 
 export function Hero({
   kennelName,
@@ -38,20 +38,18 @@ export function Hero({
               <p className="mt-4 max-w-xl text-lg text-white/90 sm:text-xl">{tagline}</p>
             )}
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link
+              <SiteLink
                 href="/available"
                 className="site-accent-bg rounded-full px-6 py-3 text-sm font-semibold text-white shadow-lg transition-transform hover:scale-[1.02]"
               >
-                {availableCount > 0
-                  ? `View ${availableCount} Available Now`
-                  : "See Upcoming Litters"}
-              </Link>
-              <Link
+                Reserve now
+              </SiteLink>
+              <SiteLink
                 href="/contact"
                 className="rounded-full border border-white/70 bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur transition-colors hover:bg-white/20"
               >
                 Get in Touch
-              </Link>
+              </SiteLink>
             </div>
           </div>
         </div>

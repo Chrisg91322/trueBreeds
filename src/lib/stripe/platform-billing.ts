@@ -94,7 +94,7 @@ export async function createPlatformCheckoutSession({
       plan,
       kind: PLATFORM_CHECKOUT_KIND,
     },
-    success_url: `${appUrl}/onboarding?step=billing&status=success`,
+    success_url: `${appUrl}/onboarding?step=publish&status=success`,
     cancel_url: `${appUrl}/onboarding?step=billing&status=cancelled`,
     allow_promotion_codes: true,
   });

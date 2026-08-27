@@ -1,7 +1,7 @@
 import Image from "next/image";
-import Link from "next/link";
 import type { Animal } from "@prisma/client";
 import { ShieldCheck, Award } from "lucide-react";
+import { SiteLink } from "@/components/site/site-base-path";
 
 export function AnimalCard({ animal }: { animal: Animal }) {
   const healthTests = Array.isArray(animal.healthTests)
@@ -9,7 +9,7 @@ export function AnimalCard({ animal }: { animal: Animal }) {
     : [];
 
   return (
-    <Link
+    <SiteLink
       href={`/our-dogs/${animal.id}`}
       className="group block overflow-hidden rounded-2xl border site-border site-surface transition-shadow hover:shadow-lg"
     >
@@ -56,6 +56,6 @@ export function AnimalCard({ animal }: { animal: Animal }) {
           </div>
         )}
       </div>
-    </Link>
+    </SiteLink>
   );
 }

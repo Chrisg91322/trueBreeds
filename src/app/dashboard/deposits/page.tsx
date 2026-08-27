@@ -57,8 +57,8 @@ export default async function DepositsPage() {
         <CardContent className="p-0">
           {deposits.length === 0 ? (
             <p className="py-10 text-center text-sm text-muted-foreground">
-              No deposits yet. Once a buyer reserves an offspring on your site, it will show up
-              here.
+              No deposits yet. When a buyer taps Reserve now on your site, the request shows up
+              here — with Stripe Connect connected, they can pay the deposit online.
             </p>
           ) : (
             <Table>

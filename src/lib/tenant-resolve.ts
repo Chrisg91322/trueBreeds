@@ -49,7 +49,12 @@ export async function resolveTenantForHostname(hostnameWithPort: string) {
   if (resolution.kind === "subdomain") {
     const tenant = await prisma.tenant.findUnique({
       where: { slug: resolution.slug },
-      select: { id: true, slug: true, status: true },
+      select: {
+        id: true,
+        slug: true,
+        status: true,
+        onboarding: { select: { published: true, billingComplete: true } },
+      },
     });
     return tenant;
   }
@@ -60,7 +65,12 @@ export async function resolveTenantForHostname(hostnameWithPort: string) {
         customDomain: resolution.hostname,
         customDomainStatus: "verified",
       },
-      select: { id: true, slug: true, status: true },
+      select: {
+        id: true,
+        slug: true,
+        status: true,
+        onboarding: { select: { published: true, billingComplete: true } },
+      },
     });
     return tenant;
   }

@@ -20,7 +20,8 @@ export default async function SocialDashboardPage() {
       <div>
         <h2 className="text-xl font-semibold">Social</h2>
         <p className="text-sm text-muted-foreground">
-          Draft posts for Facebook, Instagram, YouTube, and TikTok from one place.
+          Premium growth tool — connect accounts, draft captions, and share litter updates from
+          one place. Copy &amp; paste posting works today; one-click publish can be enabled later.
         </p>
       </div>
 

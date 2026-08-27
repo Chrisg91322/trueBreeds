@@ -32,7 +32,7 @@ export const DASHBOARD_NAV_SECTIONS: { label?: string; items: NavItem[] }[] = [
   {
     label: "Kennel",
     items: [
-      { href: "/dashboard/animals", label: "Our Dogs", icon: PawPrint },
+      { href: "/dashboard/animals", label: "Our Pets", icon: PawPrint },
       { href: "/dashboard/litters", label: "Litters", icon: Heart },
     ],
   },
@@ -104,7 +104,13 @@ export function DashboardNavLinks({
   );
 }
 
-export function DashboardSidebar({ siteUrl }: { siteUrl: string }) {
+export function DashboardSidebar({
+  siteUrl,
+  siteLinkLabel = "View live site",
+}: {
+  siteUrl: string;
+  siteLinkLabel?: string;
+}) {
   return (
     <aside className="hidden w-64 shrink-0 border-r bg-sidebar md:flex md:flex-col">
       <div className="flex h-16 items-center border-b px-3">
@@ -120,7 +126,7 @@ export function DashboardSidebar({ siteUrl }: { siteUrl: string }) {
           rel="noopener noreferrer"
           className="flex items-center justify-between rounded-lg border px-3 py-2.5 text-sm font-medium hover:bg-sidebar-accent"
         >
-          View live site
+          {siteLinkLabel}
           <ExternalLink className="h-3.5 w-3.5 shrink-0" />
         </a>
       </div>

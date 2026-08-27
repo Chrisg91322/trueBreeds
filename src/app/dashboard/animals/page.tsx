@@ -17,9 +17,9 @@ export default async function AnimalsPage() {
     <div className="mx-auto max-w-5xl space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-semibold">Our Dogs</h2>
+          <h2 className="text-xl font-semibold">Our Pets</h2>
           <p className="text-sm text-muted-foreground">
-            Your breeding stock — shown publicly on the &quot;Our Dogs&quot; page.
+            Your breeding stock — shown publicly on the &quot;Our Pets&quot; page.
           </p>
         </div>
         <Button render={<Link href="/dashboard/animals/new" />}>
