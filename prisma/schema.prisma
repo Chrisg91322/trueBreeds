@@ -123,6 +123,13 @@ model Tenant {
   heroImageUrl String?
   faviconUrl   String?
 
+  // SEO / Analytics (Premium — auto-provisioned on plan upgrade)
+  seoTitle              String?
+  seoDescription        String?
+  googleSiteVerification String?
+  gaMeasurementId       String?
+  seoProvisionedAt      DateTime?
+
   // Domains
   customDomain       String?  @unique
   customDomainStatus String?  @default("none") // none | pending | verified | error

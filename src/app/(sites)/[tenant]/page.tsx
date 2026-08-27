@@ -8,6 +8,7 @@ import { AnimalCard } from "@/components/site/animal-card";
 import { TestimonialCard } from "@/components/site/testimonial-card";
 import { Gallery } from "@/components/site/gallery";
 import { SiteLink } from "@/components/site/site-base-path";
+import { tenantSiteOrigin } from "@/lib/seo";
 
 export const revalidate = 60;
 
@@ -20,14 +21,19 @@ export async function generateMetadata({
   const data = await getPublicTenant(slug);
   if (!data) return {};
   const { tenant } = data;
+  const title =
+    tenant.seoTitle?.trim() ||
+    `${tenant.kennelName} — ${tenant.tagline ?? "Ethical, health-tested breeder"}`;
+  const description =
+    tenant.seoDescription?.trim() ||
+    tenant.tagline ||
+    `${tenant.kennelName} raises health-tested ${tenant.breeds.join(", ") || tenant.species} with love. See available puppies and past litters.`;
   return {
-    title: `${tenant.kennelName} — ${tenant.tagline ?? "Ethical, health-tested breeder"}`,
-    description:
-      tenant.tagline ??
-      `${tenant.kennelName} raises health-tested ${tenant.breeds.join(", ") || tenant.species} with love. See available puppies and past litters.`,
+    title,
+    description,
     openGraph: {
-      title: tenant.kennelName,
-      description: tenant.tagline ?? undefined,
+      title,
+      description,
       images: tenant.heroImageUrl ? [tenant.heroImageUrl] : undefined,
     },
   };
@@ -45,15 +51,23 @@ export default async function TenantHomePage({
   const { tenant, availableOffspring, upcomingLitters, animals, testimonials, galleryMedia } =
     data;
 
+  const siteUrl = tenantSiteOrigin(tenant.slug, tenant.customDomain);
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "LocalBusiness",
     name: tenant.kennelName,
-    description: tenant.tagline ?? undefined,
+    description: tenant.seoDescription || tenant.tagline || undefined,
     email: tenant.contactEmail ?? undefined,
     telephone: tenant.contactPhone ?? undefined,
-    address: tenant.address ?? undefined,
-    image: tenant.heroImageUrl ?? undefined,
+    url: siteUrl,
+    image: tenant.heroImageUrl ?? tenant.logoUrl ?? undefined,
+    address: tenant.address
+      ? {
+          "@type": "PostalAddress",
+          streetAddress: tenant.address,
+        }
+      : undefined,
   };
 
   return (

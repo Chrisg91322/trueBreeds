@@ -75,7 +75,7 @@ export default async function AdminTenantDetailPage({
         <StatCard label="Team members" value={tenant.members.length} icon={Users} />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Platform subscription</CardTitle>
@@ -111,6 +111,39 @@ export default async function AdminTenantDetailPage({
               </>
             ) : (
               <div className="text-muted-foreground">Not connected yet</div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">SEO &amp; Analytics</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1 text-sm">
+            <div>
+              SEO title:{" "}
+              <span className="font-medium">{tenant.seoTitle?.trim() ? "Set" : "Missing"}</span>
+            </div>
+            <div>
+              SEO description:{" "}
+              <span className="font-medium">{tenant.seoDescription?.trim() ? "Set" : "Missing"}</span>
+            </div>
+            <div>
+              GA4:{" "}
+              <span className="font-medium font-mono text-xs">
+                {tenant.gaMeasurementId?.trim() || "Not connected"}
+              </span>
+            </div>
+            <div>
+              Search Console:{" "}
+              <span className="font-medium">
+                {tenant.googleSiteVerification?.trim() ? "Verified token set" : "Missing"}
+              </span>
+            </div>
+            {tenant.seoProvisionedAt && (
+              <div className="text-xs text-muted-foreground">
+                Provisioned {tenant.seoProvisionedAt.toLocaleDateString()}
+              </div>
             )}
           </CardContent>
         </Card>

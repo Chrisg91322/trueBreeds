@@ -13,6 +13,7 @@ import { MarketingHeader } from "@/components/site/marketing-header";
 import { PricingCards } from "@/components/site/pricing-cards";
 import { buttonVariants } from "@/components/ui/button-variants";
 import { PLATFORM_HERO_URL } from "@/lib/platform-branding";
+import { appOrigin } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 
 const FEATURES = [
@@ -53,8 +54,30 @@ const FEATURES = [
 ];
 
 export default function MarketingHomePage() {
+  const origin = appOrigin();
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: "TrueBreeds",
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web",
+    url: origin,
+    description:
+      "Professional kennel websites for dog and cat breeders — litters, waitlists, deposits, and growth tools.",
+    offers: {
+      "@type": "AggregateOffer",
+      priceCurrency: "USD",
+      lowPrice: "49.99",
+      highPrice: "99.99",
+    },
+  };
+
   return (
     <div className="flex-1">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <MarketingHeader />
 
       <section className="border-b bg-background">

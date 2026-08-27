@@ -4,6 +4,7 @@ import { stripe } from "@/lib/stripe/client";
 import { prisma } from "@/lib/prisma";
 import { startGracePeriod, reactivateTenant, planFromStripeSubscription } from "@/lib/stripe/platform-billing";
 import { isPlanTier } from "@/lib/plans";
+import { syncPremiumProvisioning } from "@/lib/entitlements";
 
 export const runtime = "nodejs";
 
@@ -53,6 +54,9 @@ export async function POST(req: NextRequest) {
           update: { billingComplete: true },
           create: { tenantId, billingComplete: true },
         });
+        if (plan === "premium") {
+          await syncPremiumProvisioning(tenantId, plan);
+        }
       }
       break;
     }
@@ -105,6 +109,9 @@ export async function POST(req: NextRequest) {
             ...(plan ? { plan } : {}),
           },
         });
+        if (plan === "premium") {
+          await syncPremiumProvisioning(sub.tenantId, plan);
+        }
       }
       break;
     }

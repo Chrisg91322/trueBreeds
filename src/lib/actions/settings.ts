@@ -1,9 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { getSessionContext, requireTenantSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { hasPremiumGrowthTools } from "@/lib/entitlements";
 import { sendTeamInvite } from "@/lib/messenger/notifications";
 import type { ThemePresetKey } from "@/lib/theme";
 import type { TenantMemberRole } from "@prisma/client";
@@ -93,6 +93,39 @@ export async function updateThemeSettings(data: {
     create: { tenantId: session.tenantId, themeComplete: true },
   });
   revalidatePath("/dashboard/settings/theme");
+  revalidatePath(`/${session.tenantSlug}`);
+}
+
+export async function updateSeoSettings(data: {
+  seoTitle?: string | null;
+  seoDescription?: string | null;
+  googleSiteVerification?: string | null;
+  gaMeasurementId?: string | null;
+}) {
+  const session = await requireTenantSession();
+  const sub = await prisma.platformSubscription.findUnique({
+    where: { tenantId: session.tenantId },
+  });
+  if (!hasPremiumGrowthTools(sub)) {
+    throw new Error("SEO & Analytics requires Premium");
+  }
+
+  const ga = data.gaMeasurementId?.trim() || null;
+  if (ga && !/^G-[A-Z0-9]+$/i.test(ga)) {
+    throw new Error("GA4 Measurement ID should look like G-XXXXXXXXXX");
+  }
+
+  await prisma.tenant.update({
+    where: { id: session.tenantId },
+    data: {
+      seoTitle: data.seoTitle?.slice(0, 70) || null,
+      seoDescription: data.seoDescription?.slice(0, 160) || null,
+      googleSiteVerification: data.googleSiteVerification?.slice(0, 120) || null,
+      gaMeasurementId: ga,
+    },
+  });
+
+  revalidatePath("/dashboard/settings/seo");
   revalidatePath(`/${session.tenantSlug}`);
 }
 

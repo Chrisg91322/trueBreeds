@@ -47,6 +47,15 @@ export default async function AdminOverviewPage() {
         <StatCard label="Suspended" value={suspendedTenants} icon={AlertTriangle} />
       </div>
 
+      <div className="flex flex-wrap gap-3 text-sm">
+        <Link href="/admin/seo" className="text-primary hover:underline">
+          SEO readiness →
+        </Link>
+        <Link href="/admin/analytics" className="text-primary hover:underline">
+          Paid user analytics →
+        </Link>
+      </div>
+
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <CardTitle className="text-base">Recent signups</CardTitle>

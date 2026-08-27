@@ -1,22 +1,63 @@
+import Link from "next/link";
 import { Eye, MessageSquare, ListTree, DollarSign, ShoppingBag } from "lucide-react";
 import { requireTenantSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { hasPremiumGrowthTools } from "@/lib/entitlements";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { buttonVariants } from "@/components/ui/button-variants";
+import { cn } from "@/lib/utils";
 import type { AnalyticsEventType } from "@prisma/client";
 
 const WINDOW_DAYS = 30;
 
 export default async function AnalyticsDashboardPage() {
   const session = await requireTenantSession();
+  const subscription = await prisma.platformSubscription.findUnique({
+    where: { tenantId: session.tenantId },
+  });
+  const premium = hasPremiumGrowthTools(subscription);
+
+  if (!premium) {
+    return (
+      <Card>
+        <CardContent className="space-y-4 pt-6">
+          <h2 className="text-lg font-semibold">Analytics is included with Premium</h2>
+          <p className="text-sm text-muted-foreground">
+            See page views, inquiries, waitlist signups, reservation conversion, and Amazon clicks.
+            Premium also unlocks Google Analytics 4 on your kennel site and SEO controls under
+            Settings.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/onboarding?step=billing" className={cn(buttonVariants())}>
+              Upgrade to Premium
+            </Link>
+            <Link
+              href="/dashboard/settings/billing"
+              className={cn(buttonVariants({ variant: "outline" }))}
+            >
+              Billing
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const since = new Date();
   since.setDate(since.getDate() - WINDOW_DAYS);
 
-  const events = await prisma.analyticsEvent.findMany({
-    where: { tenantId: session.tenantId, createdAt: { gte: since } },
-    select: { type: true, createdAt: true },
-    orderBy: { createdAt: "asc" },
-  });
+  const [events, tenant] = await Promise.all([
+    prisma.analyticsEvent.findMany({
+      where: { tenantId: session.tenantId, createdAt: { gte: since } },
+      select: { type: true, createdAt: true },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.tenant.findUniqueOrThrow({
+      where: { id: session.tenantId },
+      select: { gaMeasurementId: true },
+    }),
+  ]);
 
   const counts: Record<AnalyticsEventType, number> = {
     page_view: 0,
@@ -41,12 +82,17 @@ export default async function AnalyticsDashboardPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
-      <div>
-        <h2 className="text-xl font-semibold">Analytics</h2>
-        <p className="text-sm text-muted-foreground">
-          Premium SEO &amp; site analytics — page views, inquiries, waitlist signups, reservations,
-          and Amazon clicks for the last {WINDOW_DAYS} days.
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-semibold">Analytics</h2>
+          <p className="text-sm text-muted-foreground">
+            Site activity for the last {WINDOW_DAYS} days. Connect GA4 under Settings → SEO &amp;
+            Analytics for Google&apos;s full reports.
+          </p>
+        </div>
+        <Link href="/dashboard/settings/seo" className={cn(buttonVariants({ variant: "outline" }))}>
+          {tenant.gaMeasurementId ? "Manage GA4 / SEO" : "Connect Google Analytics"}
+        </Link>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
