@@ -15,8 +15,45 @@ import {
 const GRACE_PERIOD_DAYS = 14;
 const PLATFORM_CHECKOUT_KIND = "platform_subscription";
 
-function lineItemForPlan(plan: PlanTier): Stripe.Checkout.SessionCreateParams.LineItem {
-  const priceId = stripePriceIdForPlan(plan);
+/**
+ * Checkout line items need Stripe Price IDs (`price_…`). If someone pasted a
+ * Product ID (`prod_…`) into env by mistake, resolve its default price.
+ */
+async function resolveStripePriceId(
+  raw: string | undefined,
+  label: string
+): Promise<string | undefined> {
+  const value = raw?.trim();
+  if (!value) return undefined;
+
+  if (value.startsWith("price_")) return value;
+
+  if (value.startsWith("prod_")) {
+    const product = await stripe.products.retrieve(value);
+    const defaultPrice =
+      typeof product.default_price === "string"
+        ? product.default_price
+        : product.default_price?.id;
+    if (!defaultPrice) {
+      throw new Error(
+        `${label} is a Product ID (${value}) with no default price. In Stripe → Products → that product, copy the Price ID (price_…) into your env instead.`
+      );
+    }
+    return defaultPrice;
+  }
+
+  throw new Error(
+    `${label} must be a Stripe Price ID starting with price_ (got "${value.slice(0, 12)}…"). Open the product in Stripe and copy the Price ID, not the Product ID.`
+  );
+}
+
+async function lineItemForPlan(
+  plan: PlanTier
+): Promise<Stripe.Checkout.SessionCreateParams.LineItem> {
+  const priceId = await resolveStripePriceId(
+    stripePriceIdForPlan(plan),
+    `STRIPE_PRICE_${plan.toUpperCase()}`
+  );
   if (priceId) return { price: priceId, quantity: 1 };
 
   const definition = getPlan(plan);
@@ -34,8 +71,11 @@ function lineItemForPlan(plan: PlanTier): Stripe.Checkout.SessionCreateParams.Li
   };
 }
 
-function setupFeeLineItem(): Stripe.Checkout.SessionCreateParams.LineItem {
-  const priceId = stripePriceIdForSetupFee();
+async function setupFeeLineItem(): Promise<Stripe.Checkout.SessionCreateParams.LineItem> {
+  const priceId = await resolveStripePriceId(
+    stripePriceIdForSetupFee(),
+    "STRIPE_PRICE_SETUP_FEE"
+  );
   if (priceId) return { price: priceId, quantity: 1 };
   return {
     quantity: 1,
@@ -66,9 +106,19 @@ export async function createPlatformCheckoutSession({
     throw new Error("Invalid membership plan");
   }
 
+  const secret = process.env.STRIPE_SECRET_KEY?.trim() || "";
+  if (!secret || secret.includes("placeholder") || secret.endsWith("…")) {
+    throw new Error(
+      "Stripe is not configured. Set a valid STRIPE_SECRET_KEY (sk_test_… or sk_live_…) in your environment."
+    );
+  }
+
   const tenant = await prisma.tenant.findUniqueOrThrow({ where: { id: tenantId } });
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3002";
-  const priceId = stripePriceIdForPlan(plan);
+  const priceId = await resolveStripePriceId(
+    stripePriceIdForPlan(plan),
+    `STRIPE_PRICE_${plan.toUpperCase()}`
+  );
 
   const subscription = await prisma.platformSubscription.findUnique({ where: { tenantId } });
 
@@ -85,7 +135,7 @@ export async function createPlatformCheckoutSession({
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
     customer: stripeCustomerId,
-    line_items: [setupFeeLineItem(), lineItemForPlan(plan)],
+    line_items: [await setupFeeLineItem(), await lineItemForPlan(plan)],
     subscription_data: {
       metadata: { tenantId, plan },
     },

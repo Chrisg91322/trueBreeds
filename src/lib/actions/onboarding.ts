@@ -153,3 +153,29 @@ export async function revokeUnpaidPublish(tenantId: string) {
     }),
   ]);
 }
+
+/** Marks the first-run dashboard welcome tour as finished or skipped. */
+export async function completeDashboardTour() {
+  const session = await getSessionContext();
+  if (!session?.tenantId) throw new Error("Not authenticated");
+
+  await prisma.onboardingProgress.upsert({
+    where: { tenantId: session.tenantId },
+    update: { dashboardTourSeen: true },
+    create: { tenantId: session.tenantId, dashboardTourSeen: true },
+  });
+  revalidatePath("/dashboard");
+}
+
+/** Re-opens the tour by clearing the seen flag (e.g. Help → Replay tour). */
+export async function resetDashboardTour() {
+  const session = await getSessionContext();
+  if (!session?.tenantId) throw new Error("Not authenticated");
+
+  await prisma.onboardingProgress.upsert({
+    where: { tenantId: session.tenantId },
+    update: { dashboardTourSeen: false },
+    create: { tenantId: session.tenantId, dashboardTourSeen: false },
+  });
+  revalidatePath("/dashboard");
+}

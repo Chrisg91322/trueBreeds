@@ -95,13 +95,20 @@ export function formatSetupFee() {
   return `$${SETUP_FEE.amount}`;
 }
 
+/** First token only — ignores pasted suffixes like " $49.99/mo". */
+function envPriceValue(key: string): string | undefined {
+  const raw = process.env[key]?.trim();
+  if (!raw) return undefined;
+  const token = raw.replace(/^["']|["']$/g, "").split(/\s+/)[0];
+  return token || undefined;
+}
+
 export function stripePriceIdForSetupFee(): string | undefined {
-  return process.env[SETUP_FEE.envPriceKey] || undefined;
+  return envPriceValue(SETUP_FEE.envPriceKey);
 }
 
 export function stripePriceIdForPlan(plan: PlanTier): string | undefined {
-  const value = process.env[PLANS[plan].envPriceKey];
-  return value || undefined;
+  return envPriceValue(PLANS[plan].envPriceKey);
 }
 
 export function planFromPriceId(priceId: string | undefined | null): PlanTier | null {

@@ -3,6 +3,8 @@ import { Users, DollarSign, PawPrint, Heart } from "lucide-react";
 import { requireTenantSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { SetupChecklist } from "@/components/dashboard/setup-checklist";
+import { WelcomeTour } from "@/components/dashboard/welcome-tour";
+import { ReplayTourButton } from "@/components/dashboard/replay-tour-button";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +36,18 @@ export default async function DashboardOverviewPage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
+      <WelcomeTour openInitially={!onboarding.dashboardTourSeen} />
+
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold">Overview</h1>
+          <p className="text-sm text-muted-foreground">
+            Your kennel at a glance — and a short tour when you need a refresher.
+          </p>
+        </div>
+        {onboarding.dashboardTourSeen ? <ReplayTourButton /> : null}
+      </div>
+
       <SetupChecklist progress={onboarding} />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

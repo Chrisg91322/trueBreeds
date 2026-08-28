@@ -14,9 +14,17 @@ declare global {
  * `{ stripeAccount: connectedAccountId }` so funds land directly in the
  * breeder's own Connect account — see lib/stripe/connect.ts.
  */
+function stripeSecretKey() {
+  // Trim quotes/whitespace and a trailing period people sometimes paste from docs.
+  return (process.env.STRIPE_SECRET_KEY || "sk_test_placeholder")
+    .trim()
+    .replace(/^["']|["']$/g, "")
+    .replace(/\.$/, "");
+}
+
 export const stripe =
   global.__stripe ??
-  new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_placeholder", {
+  new Stripe(stripeSecretKey(), {
     apiVersion: "2026-07-29.dahlia",
     typescript: true,
   });

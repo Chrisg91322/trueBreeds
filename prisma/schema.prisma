@@ -189,6 +189,8 @@ model OnboardingProgress {
   stripeConnected   Boolean @default(false)
   socialsComplete   Boolean @default(false)
   published         Boolean @default(false)
+  // First-run dashboard welcome tour dismissed / finished
+  dashboardTourSeen Boolean @default(false)
   updatedAt DateTime @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
