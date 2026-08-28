@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import { Geist_Mono, Nunito, Quicksand } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -82,6 +83,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Toaster richColors position="top-center" />
         </TooltipProvider>
         {gaId ? <GoogleAnalytics measurementId={gaId} /> : null}
+        <Analytics />
       </body>
     </html>
   );
