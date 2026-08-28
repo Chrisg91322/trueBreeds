@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireTenantSession } from "@/lib/auth";
 import { forTenant } from "@/lib/db";
@@ -30,6 +30,15 @@ function parseAnimalForm(formData: FormData) {
   };
 }
 
+function revalidateAnimalPages(tenantSlug: string) {
+  revalidatePath("/dashboard/animals");
+  revalidatePath(`/${tenantSlug}`);
+  revalidatePath(`/${tenantSlug}/our-dogs`);
+  revalidatePath("/preview");
+  revalidatePath("/preview/our-dogs");
+  revalidateTag("tenant");
+}
+
 export async function createAnimal(formData: FormData) {
   const session = await requireTenantSession();
   const db = forTenant(session.tenantId);
@@ -37,8 +46,7 @@ export async function createAnimal(formData: FormData) {
 
   await db.animal.create({ data: { ...data, tenantId: session.tenantId } });
 
-  revalidatePath("/dashboard/animals");
-  revalidatePath(`/${session.tenantSlug}`);
+  revalidateAnimalPages(session.tenantSlug);
   redirect("/dashboard/animals");
 }
 
@@ -49,8 +57,7 @@ export async function updateAnimal(animalId: string, formData: FormData) {
 
   await db.animal.update({ where: { id: animalId }, data });
 
-  revalidatePath("/dashboard/animals");
-  revalidatePath(`/${session.tenantSlug}`);
+  revalidateAnimalPages(session.tenantSlug);
   redirect("/dashboard/animals");
 }
 
@@ -58,5 +65,5 @@ export async function deleteAnimal(animalId: string) {
   const session = await requireTenantSession();
   const db = forTenant(session.tenantId);
   await db.animal.delete({ where: { id: animalId } });
-  revalidatePath("/dashboard/animals");
+  revalidateAnimalPages(session.tenantSlug);
 }

@@ -15,7 +15,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             where: { slug: resolution.slug },
             include: {
               onboarding: true,
-              animals: { where: { isRetired: false }, select: { id: true, updatedAt: true } },
+              animals: { select: { id: true, updatedAt: true } },
               offspring: {
                 where: { status: { in: ["available", "deposit_received"] } },
                 select: { id: true, updatedAt: true },
@@ -30,7 +30,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             },
             include: {
               onboarding: true,
-              animals: { where: { isRetired: false }, select: { id: true, updatedAt: true } },
+              animals: { select: { id: true, updatedAt: true } },
               offspring: {
                 where: { status: { in: ["available", "deposit_received"] } },
                 select: { id: true, updatedAt: true },

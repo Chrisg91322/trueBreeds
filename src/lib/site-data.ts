@@ -14,8 +14,8 @@ async function loadTenantSiteData(slug: string) {
   const [animals, litters, testimonials, faqItems, media, affiliateProducts] =
     await Promise.all([
       prisma.animal.findMany({
-        where: { tenantId: tenant.id, isRetired: false },
-        orderBy: { createdAt: "desc" },
+        where: { tenantId: tenant.id },
+        orderBy: [{ isRetired: "asc" }, { createdAt: "desc" }],
       }),
       prisma.litter.findMany({
         where: { tenantId: tenant.id },

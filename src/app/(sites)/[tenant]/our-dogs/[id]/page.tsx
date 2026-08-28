@@ -29,9 +29,16 @@ export default async function AnimalDetailPage({
         )}
       </div>
 
-      <div className="mt-8 flex flex-wrap items-start justify-between gap-4">
+          <div className="mt-8 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="site-font-heading text-3xl font-semibold">{animal.name}</h1>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="site-font-heading text-3xl font-semibold">{animal.name}</h1>
+            {animal.isRetired && (
+              <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-600">
+                Retired
+              </span>
+            )}
+          </div>
           <p className="mt-1 site-muted">
             {[animal.breed, animal.sex === "male" ? "Male" : "Female", animal.color]
               .filter(Boolean)

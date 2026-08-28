@@ -117,7 +117,12 @@ export function AnimalForm({
             defaultChecked={animal?.isRetired ?? false}
             className="h-4 w-4"
           />
-          Retired
+          <span>
+            Retired from breeding
+            <span className="block text-xs text-muted-foreground">
+              Still shown on your public Our Dogs page
+            </span>
+          </span>
         </label>
       </div>
 

@@ -23,7 +23,8 @@ async function resolveStripePriceId(
   raw: string | undefined,
   label: string
 ): Promise<string | undefined> {
-  const value = raw?.trim();
+  const match = raw?.match(/(?:price|prod)_[A-Za-z0-9]+/);
+  const value = match?.[0];
   if (!value) return undefined;
 
   if (value.startsWith("price_")) return value;
@@ -43,7 +44,7 @@ async function resolveStripePriceId(
   }
 
   throw new Error(
-    `${label} must be a Stripe Price ID starting with price_ (got "${value.slice(0, 12)}…"). Open the product in Stripe and copy the Price ID, not the Product ID.`
+    `${label} must be a Stripe Price ID starting with price_ (got "${raw?.slice(0, 24)}"). Open the product in Stripe and copy the Price ID, not the Product ID.`
   );
 }
 

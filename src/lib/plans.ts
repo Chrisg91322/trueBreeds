@@ -95,12 +95,15 @@ export function formatSetupFee() {
   return `$${SETUP_FEE.amount}`;
 }
 
-/** First token only — ignores pasted suffixes like " $49.99/mo". */
+/**
+ * Read a Stripe price/product id from env. Tolerates common paste mistakes:
+ * surrounding quotes, escaped quotes, and suffixes like " $49.99/mo".
+ */
 function envPriceValue(key: string): string | undefined {
-  const raw = process.env[key]?.trim();
+  const raw = process.env[key];
   if (!raw) return undefined;
-  const token = raw.replace(/^["']|["']$/g, "").split(/\s+/)[0];
-  return token || undefined;
+  const match = raw.match(/(?:price|prod)_[A-Za-z0-9]+/);
+  return match?.[0];
 }
 
 export function stripePriceIdForSetupFee(): string | undefined {

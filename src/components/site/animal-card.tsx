@@ -29,7 +29,14 @@ export function AnimalCard({ animal }: { animal: Animal }) {
         )}
       </div>
       <div className="p-5">
-        <div className="site-font-heading text-lg font-semibold">{animal.name}</div>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="site-font-heading text-lg font-semibold">{animal.name}</div>
+          {animal.isRetired && (
+            <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[11px] font-medium text-neutral-600">
+              Retired
+            </span>
+          )}
+        </div>
         <div className="mt-1 text-sm site-muted">
           {[animal.breed, animal.sex === "male" ? "Male" : "Female", animal.color]
             .filter(Boolean)
