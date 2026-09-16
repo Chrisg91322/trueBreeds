@@ -164,8 +164,13 @@ export default function MarketingHomePage() {
 
       <footer className="border-t px-4 py-10 text-center text-sm text-muted-foreground sm:px-6">
         © {new Date().getFullYear()} trueBreeds ·{" "}
-        <Link href="/terms" className="hover:underline">Terms</Link> ·{" "}
-        <Link href="/privacy" className="hover:underline">Privacy</Link>
+        <Link href="/terms" className="hover:underline">
+          Terms
+        </Link>{" "}
+        ·{" "}
+        <Link href="/privacy" className="hover:underline">
+          Privacy
+        </Link>
       </footer>
     </div>
   );

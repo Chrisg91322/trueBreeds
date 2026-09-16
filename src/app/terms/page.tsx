@@ -1,15 +1,18 @@
-export const metadata = { title: "Terms of Service" };
+import type { Metadata } from "next";
+import { MarketingHeader } from "@/components/site/marketing-header";
+import { LegalPage } from "@/components/site/legal-page";
+
+export const metadata: Metadata = {
+  title: "Terms of Service & Privacy Policy",
+  description:
+    "TrueBreeds Terms of Service and Privacy Policy — membership billing, Stripe Connect deposits, Klarna, and how we handle your data.",
+};
 
 export default function TermsPage() {
   return (
-    <div className="mx-auto max-w-3xl px-6 py-20 prose prose-neutral">
-      <h1>Terms of Service</h1>
-      <p>
-        This is placeholder legal copy for the TrueBreeds platform. Replace with real Terms of
-        Service reviewed by counsel before launch — covering acceptable use, payment terms via
-        Stripe (including Stripe Connect for buyer deposits), tenant data ownership, suspension
-        for policy violations, and limitation of liability.
-      </p>
+    <div className="min-h-screen bg-background">
+      <MarketingHeader />
+      <LegalPage />
     </div>
   );
 }

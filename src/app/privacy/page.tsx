@@ -1,15 +1,18 @@
-export const metadata = { title: "Privacy Policy" };
+import type { Metadata } from "next";
+import { MarketingHeader } from "@/components/site/marketing-header";
+import { LegalPage } from "@/components/site/legal-page";
+
+export const metadata: Metadata = {
+  title: "Privacy Policy",
+  description:
+    "TrueBreeds Privacy Policy — how we collect, use, and share personal information on the platform and kennel sites.",
+};
 
 export default function PrivacyPage() {
   return (
-    <div className="mx-auto max-w-3xl px-6 py-20 prose prose-neutral">
-      <h1>Privacy Policy</h1>
-      <p>
-        This is placeholder legal copy for the TrueBreeds platform. Replace with a real Privacy
-        Policy reviewed by counsel before launch — covering what buyer/lead data is collected via
-        tenant sites, how it&apos;s used for transactional email, Stripe payment processing, and
-        each tenant&apos;s own generated privacy policy (see dashboard → Settings → Legal).
-      </p>
+    <div className="min-h-screen bg-background">
+      <MarketingHeader />
+      <LegalPage />
     </div>
   );
 }
