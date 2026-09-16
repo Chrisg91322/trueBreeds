@@ -59,7 +59,8 @@ export const PLANS: Record<PlanTier, PlanDefinition> = {
     id: "premium",
     name: "Premium",
     stripeProductName: "Premium Membership",
-    description: "The full kennel toolkit, including growth tools.",
+    description:
+      "The full kennel toolkit — growth tools plus Klarna so buyers can pay for a dog over time.",
     monthlyPrice: 99.99,
     unitAmount: 9999,
     envPriceKey: "STRIPE_PRICE_PREMIUM",
@@ -70,6 +71,7 @@ export const PLANS: Record<PlanTier, PlanDefinition> = {
       "Share to Social Accounts",
       "SEO & Site analytics",
       "Stripe deposits to your bank",
+      "Klarna flexible payments for buyers",
     ],
   },
 };

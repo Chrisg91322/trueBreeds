@@ -24,6 +24,21 @@ export function classifyHostname(hostnameWithPort: string): HostnameResolution {
   const hostname = hostnameWithPort.split(":")[0].toLowerCase();
   const rootDomain = getRootDomain().split(":")[0].toLowerCase();
 
+  // Local platform host is always the marketing/app origin, even when
+  // NEXT_PUBLIC_ROOT_DOMAIN is set to the production domain.
+  if (hostname === "localhost" || hostname === "127.0.0.1") {
+    return { kind: "root" };
+  }
+
+  // Local tenant sites: http://{slug}.localhost:3002
+  if (hostname.endsWith(".localhost")) {
+    const slug = hostname.slice(0, -".localhost".length);
+    if (slug && !["app", "api", "admin", "mail"].includes(slug)) {
+      return { kind: "subdomain", slug };
+    }
+    return { kind: "root" };
+  }
+
   if (hostname === rootDomain) return { kind: "root" };
   if (hostname === `www.${rootDomain}`) return { kind: "www" };
 

@@ -2,12 +2,29 @@
 -- TrueBreeds — Row-Level Security policies
 --
 -- Run this AFTER `prisma migrate deploy` / `prisma db push` has created the
--- tables. Apply via `psql $DIRECT_URL -f prisma/rls.sql` or paste into the
--- Supabase SQL editor.
+-- tables. Apply via:
 --
--- IMPORTANT: RLS only protects you if the Postgres role in DATABASE_URL does
--- NOT have BYPASSRLS (superusers and the default Supabase `postgres` role
--- both bypass RLS). Create a dedicated, non-bypass application role:
+--   npx prisma db execute --file prisma/rls.sql --schema prisma/schema.prisma
+--
+-- or paste into the Supabase SQL editor.
+--
+-- Context
+-- -------
+-- The Next.js app reads/writes Postgres only via Prisma (DATABASE_URL).
+-- Supabase Auth / Storage are used separately. Supabase still grants the
+-- `anon` and `authenticated` PostgREST roles broad table privileges by
+-- default — without RLS, anyone with the project URL + anon key can
+-- read/edit/delete every row (including `users.email`).
+--
+-- Enabling RLS here closes that API surface. The `postgres` role used by
+-- Prisma typically has BYPASSRLS, so the app keeps working. For a
+-- non-bypass application role, set `app.tenant_id` per request via
+-- `withTenantRls` in src/lib/db.ts.
+--
+-- Note: Prisma maps String IDs to Postgres `text`, so policies compare text
+-- (not uuid) against `current_setting('app.tenant_id')`.
+--
+-- Optional hardened app role (recommended for production):
 --
 --   CREATE ROLE app_user LOGIN PASSWORD '...';
 --   GRANT USAGE ON SCHEMA public TO app_user;
@@ -15,12 +32,11 @@
 --   ALTER DEFAULT PRIVILEGES IN SCHEMA public
 --     GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO app_user;
 --
--- Then point DATABASE_URL at `app_user`, and every request must call
--- `withTenantRls(tenantId, ...)` (see src/lib/db.ts) to set
--- `app.tenant_id` for the duration of the transaction before touching
--- tenant-scoped tables.
+-- Then point DATABASE_URL at `app_user`.
 -- ============================================================================
 
+-- Tenant-scoped tables: isolation via session GUC app.tenant_id.
+-- Unset / empty GUC → null → policy fails closed for anon/authenticated.
 do $$
 declare
   t text;
@@ -38,8 +54,12 @@ begin
     execute format('drop policy if exists tenant_isolation on %I;', t);
     execute format(
       $p$create policy tenant_isolation on %I
-        using ("tenantId" = current_setting('app.tenant_id', true)::uuid)
-        with check ("tenantId" = current_setting('app.tenant_id', true)::uuid);$p$,
+        using (
+          "tenantId" = nullif(current_setting('app.tenant_id', true), '')
+        )
+        with check (
+          "tenantId" = nullif(current_setting('app.tenant_id', true), '')
+        );$p$,
       t
     );
   end loop;
@@ -53,7 +73,12 @@ create policy tenant_isolation on lead_notes
   using (exists (
     select 1 from leads
     where leads.id = lead_notes."leadId"
-      and leads."tenantId" = current_setting('app.tenant_id', true)::uuid
+      and leads."tenantId" = nullif(current_setting('app.tenant_id', true), '')
+  ))
+  with check (exists (
+    select 1 from leads
+    where leads.id = lead_notes."leadId"
+      and leads."tenantId" = nullif(current_setting('app.tenant_id', true), '')
   ));
 
 alter table social_post_targets enable row level security;
@@ -62,19 +87,31 @@ create policy tenant_isolation on social_post_targets
   using (exists (
     select 1 from social_posts
     where social_posts.id = social_post_targets."postId"
-      and social_posts."tenantId" = current_setting('app.tenant_id', true)::uuid
+      and social_posts."tenantId" = nullif(current_setting('app.tenant_id', true), '')
+  ))
+  with check (exists (
+    select 1 from social_posts
+    where social_posts.id = social_post_targets."postId"
+      and social_posts."tenantId" = nullif(current_setting('app.tenant_id', true), '')
   ));
 
--- audit_logs: platform admins need cross-tenant visibility, so RLS is
--- intentionally NOT applied here — access is gated in application code by
--- the `platform_admin` role check instead (see src/lib/auth.ts).
-
--- tenants table itself: readable by anyone (needed for public site
--- rendering by slug/custom domain), writable only by members of that tenant.
+-- tenants: writable only for the active tenant session. No open SELECT for
+-- anon — public sites load tenant rows through Prisma (bypass), not PostgREST.
 alter table tenants enable row level security;
 drop policy if exists tenants_read on tenants;
-create policy tenants_read on tenants for select using (true);
 drop policy if exists tenants_write on tenants;
-create policy tenants_write on tenants for all
-  using (id = current_setting('app.tenant_id', true)::uuid)
-  with check (id = current_setting('app.tenant_id', true)::uuid);
+drop policy if exists tenant_isolation on tenants;
+create policy tenant_isolation on tenants
+  using (id = nullif(current_setting('app.tenant_id', true), ''))
+  with check (id = nullif(current_setting('app.tenant_id', true), ''));
+
+-- users + audit_logs: enable RLS with no policies for anon/authenticated.
+-- Default deny closes Supabase "sensitive columns exposed" / public access
+-- alerts. Prisma (bypass) and service_role still have full access.
+alter table users enable row level security;
+drop policy if exists tenant_isolation on users;
+drop policy if exists users_self on users;
+
+alter table audit_logs enable row level security;
+drop policy if exists tenant_isolation on audit_logs;
+drop policy if exists audit_logs_admin on audit_logs;

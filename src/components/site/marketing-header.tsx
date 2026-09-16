@@ -7,7 +7,7 @@ export function MarketingHeader() {
   return (
     <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/70">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2.5 sm:px-6 sm:py-3">
-        <PlatformLogo size="sm" className="min-w-0" />
+        <PlatformLogo size="md" className="min-w-0" />
         <nav className="flex shrink-0 items-center gap-1.5 sm:gap-3">
           <Link href="/login" className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
             Log in

@@ -48,7 +48,11 @@ export async function POST(req: NextRequest) {
     data: { tenantId, type: "waitlist_signup", metadata: { waitlistEntryId: entry.id } },
   });
 
-  await sendWaitlistConfirmation(entry, tenant);
+  try {
+    await sendWaitlistConfirmation(entry, tenant);
+  } catch (err) {
+    console.error("[waitlist] confirmation email failed (entry still saved)", err);
+  }
 
   return NextResponse.json({ ok: true, rank: entry.rank });
 }

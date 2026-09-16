@@ -19,10 +19,8 @@ function parseLitterForm(formData: FormData) {
     expectedWhelpDate: parsed.expectedWhelpDate ? new Date(parsed.expectedWhelpDate) : null,
     goHomeDate: parsed.goHomeDate ? new Date(parsed.goHomeDate) : null,
     description: parsed.description || null,
-    defaultPrice: Number.isNaN(parsed.defaultPrice) ? null : parsed.defaultPrice,
-    defaultDepositAmount: Number.isNaN(parsed.defaultDepositAmount)
-      ? null
-      : parsed.defaultDepositAmount,
+    defaultPrice: parsed.defaultPrice ?? null,
+    defaultDepositAmount: parsed.defaultDepositAmount ?? null,
     coverPhotoUrl: parsed.coverPhotoUrl || null,
   };
 }

@@ -13,26 +13,46 @@ export async function ensureTenantForCurrentUser() {
   if (!session) throw new Error("Not authenticated");
   if (session.tenantId) return session.tenantId;
 
+  // Another concurrent request may have just created membership.
+  const existing = await prisma.tenantMember.findFirst({
+    where: { userId: session.userId },
+    orderBy: { createdAt: "asc" },
+    select: { tenantId: true },
+  });
+  if (existing) return existing.tenantId;
+
   const baseSlug = slugify(session.email.split("@")[0], { lower: true, strict: true }) || "kennel";
-  let slug = baseSlug;
-  let attempt = 0;
-  while (await prisma.tenant.findUnique({ where: { slug } })) {
-    attempt += 1;
-    slug = `${baseSlug}-${nanoid(4).toLowerCase()}`;
-    if (attempt > 5) break;
+
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const slug = attempt === 0 ? baseSlug : `${baseSlug}-${nanoid(4).toLowerCase()}`;
+    try {
+      const tenant = await prisma.tenant.create({
+        data: {
+          slug,
+          kennelName: "My Kennel",
+          status: "onboarding",
+          onboarding: { create: {} },
+          members: { create: { userId: session.userId, role: "owner" } },
+        },
+      });
+      return tenant.id;
+    } catch (err) {
+      const code = typeof err === "object" && err && "code" in err ? (err as { code?: string }).code : undefined;
+      if (code === "P2002") {
+        // Slug taken or concurrent membership create — re-check membership.
+        const raced = await prisma.tenantMember.findFirst({
+          where: { userId: session.userId },
+          orderBy: { createdAt: "asc" },
+          select: { tenantId: true },
+        });
+        if (raced) return raced.tenantId;
+        continue;
+      }
+      throw err;
+    }
   }
 
-  const tenant = await prisma.tenant.create({
-    data: {
-      slug,
-      kennelName: "My Kennel",
-      status: "onboarding",
-      onboarding: { create: {} },
-      members: { create: { userId: session.userId, role: "owner" } },
-    },
-  });
-
-  return tenant.id;
+  throw new Error("Could not create kennel — please try again.");
 }
 
 export async function updateTenantProfile(

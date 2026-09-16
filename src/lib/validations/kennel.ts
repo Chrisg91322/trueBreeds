@@ -1,5 +1,22 @@
 import { z } from "zod";
 
+/** Empty form fields → undefined; avoids coerce turning "" into 0. */
+const optionalPositiveNumber = z.preprocess(
+  (v) => (v === "" || v === null || v === undefined ? undefined : v),
+  z.coerce.number().positive().optional()
+);
+
+const optionalNonNegNumber = z.preprocess(
+  (v) => (v === "" || v === null || v === undefined ? undefined : v),
+  z.coerce.number().nonnegative().optional()
+);
+
+/** Checkbox + hidden "false" — do not use z.coerce.boolean (Boolean("false") === true). */
+const formBoolean = z
+  .union([z.literal("true"), z.literal("false"), z.boolean()])
+  .optional()
+  .transform((v) => v === true || v === "true");
+
 export const animalSchema = z.object({
   name: z.string().min(1, "Name is required").max(200),
   species: z.enum(["dog", "cat"]),
@@ -7,15 +24,15 @@ export const animalSchema = z.object({
   sex: z.enum(["male", "female"]),
   dateOfBirth: z.string().optional().or(z.literal("")),
   color: z.string().max(120).optional().or(z.literal("")),
-  weightLbs: z.coerce.number().positive().optional().or(z.nan()),
+  weightLbs: optionalPositiveNumber,
   bio: z.string().max(4000).optional().or(z.literal("")),
   registryNumber: z.string().max(120).optional().or(z.literal("")),
   titlesCsv: z.string().max(500).optional().or(z.literal("")),
   pedigreeUrl: z.string().url().optional().or(z.literal("")),
   embarkUrl: z.string().url().optional().or(z.literal("")),
   coverPhotoUrl: z.string().url().optional().or(z.literal("")),
-  isBreedingStock: z.coerce.boolean().optional(),
-  isRetired: z.coerce.boolean().optional(),
+  isBreedingStock: formBoolean,
+  isRetired: formBoolean,
 });
 export type AnimalFormValues = z.infer<typeof animalSchema>;
 
@@ -29,8 +46,8 @@ export const litterSchema = z.object({
   expectedWhelpDate: z.string().optional().or(z.literal("")),
   goHomeDate: z.string().optional().or(z.literal("")),
   description: z.string().max(4000).optional().or(z.literal("")),
-  defaultPrice: z.coerce.number().nonnegative().optional().or(z.nan()),
-  defaultDepositAmount: z.coerce.number().nonnegative().optional().or(z.nan()),
+  defaultPrice: optionalNonNegNumber,
+  defaultDepositAmount: optionalNonNegNumber,
   coverPhotoUrl: z.string().url().optional().or(z.literal("")),
 });
 export type LitterFormValues = z.infer<typeof litterSchema>;
@@ -40,8 +57,8 @@ export const offspringSchema = z.object({
   name: z.string().max(200).optional().or(z.literal("")),
   sex: z.enum(["male", "female"]),
   color: z.string().max(120).optional().or(z.literal("")),
-  price: z.coerce.number().nonnegative().optional().or(z.nan()),
-  depositAmount: z.coerce.number().nonnegative().optional().or(z.nan()),
+  price: optionalNonNegNumber,
+  depositAmount: optionalNonNegNumber,
   status: z.enum(["upcoming", "available", "deposit_received", "reserved", "sold", "kept"]),
   microchip: z.string().max(120).optional().or(z.literal("")),
   notes: z.string().max(4000).optional().or(z.literal("")),

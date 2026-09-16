@@ -68,7 +68,11 @@ export async function POST(req: NextRequest) {
           },
         });
 
-        await sendDepositConfirmation(deposit);
+        try {
+          await sendDepositConfirmation(deposit);
+        } catch (err) {
+          console.error("[stripe-connect] deposit confirmation email failed", err);
+        }
       }
       break;
     }

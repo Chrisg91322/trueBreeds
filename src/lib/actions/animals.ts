@@ -16,7 +16,7 @@ function parseAnimalForm(formData: FormData) {
     sex: parsed.sex,
     dateOfBirth: parsed.dateOfBirth ? new Date(parsed.dateOfBirth) : null,
     color: parsed.color || null,
-    weightLbs: Number.isNaN(parsed.weightLbs) ? null : parsed.weightLbs,
+    weightLbs: parsed.weightLbs ?? null,
     bio: parsed.bio || null,
     registryNumber: parsed.registryNumber || null,
     titles: parsed.titlesCsv

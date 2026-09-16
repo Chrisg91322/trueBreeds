@@ -34,7 +34,11 @@ export async function POST(req: NextRequest) {
     data: { tenantId, type: "inquiry", metadata: { leadId: lead.id } },
   });
 
-  await sendInquiryNotifications(lead, tenant);
+  try {
+    await sendInquiryNotifications(lead, tenant);
+  } catch (err) {
+    console.error("[contact] notification failed (lead still saved)", err);
+  }
 
   return NextResponse.json({ ok: true });
 }
