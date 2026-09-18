@@ -48,6 +48,7 @@ export function PlatformLogo({
           alt=""
           width={px}
           height={px}
+          sizes={`${px}px`}
           priority
           className={cn("shrink-0 object-contain", SIZE_CLASS[size])}
         />

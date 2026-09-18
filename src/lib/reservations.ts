@@ -1,5 +1,7 @@
 import "server-only";
+import { revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { tenantCacheTag } from "@/lib/site-data";
 
 /**
  * Soft reservation when Stripe Connect isn't taking payments yet.
@@ -85,6 +87,8 @@ export async function createReservationRequest({
     return created;
   });
 
+  revalidateTag(tenantCacheTag(tenant.slug));
+
   return {
     depositId: deposit.id,
     url: `${appUrl}/deposit/success?depositId=${deposit.id}&mode=request`,
@@ -92,7 +96,14 @@ export async function createReservationRequest({
   };
 }
 
+/** Real Connect account ids look like acct_1N… Seed/demo placeholders must not enable checkout. */
+function isLiveStripeConnectAccountId(accountId: string | null | undefined) {
+  if (!accountId) return false;
+  if (!accountId.startsWith("acct_")) return false;
+  return !/demo|seed|placeholder|test_local/i.test(accountId);
+}
+
 export async function tenantAcceptsCardPayments(tenantId: string) {
   const account = await prisma.stripeConnectAccount.findUnique({ where: { tenantId } });
-  return !!account?.chargesEnabled;
+  return !!account?.chargesEnabled && isLiveStripeConnectAccountId(account.stripeAccountId);
 }

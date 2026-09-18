@@ -17,15 +17,21 @@ export async function POST(req: NextRequest) {
     const canCharge = await tenantAcceptsCardPayments(parsed.data.tenantId);
 
     if (canCharge) {
-      const session = await createDepositCheckoutSession(parsed.data);
-      await prisma.analyticsEvent.create({
-        data: {
-          tenantId: parsed.data.tenantId,
-          type: "deposit_started",
-          metadata: { offspringId: parsed.data.offspringId, mode: "stripe" },
-        },
-      });
-      return NextResponse.json({ url: session.url, mode: "checkout" });
+      try {
+        const session = await createDepositCheckoutSession(parsed.data);
+        await prisma.analyticsEvent.create({
+          data: {
+            tenantId: parsed.data.tenantId,
+            type: "deposit_started",
+            metadata: { offspringId: parsed.data.offspringId, mode: "stripe" },
+          },
+        });
+        return NextResponse.json({ url: session.url, mode: "checkout" });
+      } catch (stripeErr) {
+        // Invalid/incomplete Connect accounts should not hard-fail the buyer —
+        // fall through to a soft reservation the breeder can follow up on.
+        console.error("stripe deposit checkout failed; falling back to reservation", stripeErr);
+      }
     }
 
     const reservation = await createReservationRequest(parsed.data);

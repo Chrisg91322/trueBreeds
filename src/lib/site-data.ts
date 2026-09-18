@@ -69,21 +69,20 @@ async function loadTenantSiteData(slug: string) {
   };
 }
 
-const getCachedPublicTenant = unstable_cache(loadTenantSiteData, ["public-tenant"], {
-  revalidate: 60,
-  tags: ["tenant"],
-});
-
 /**
  * Full public-site payload for a tenant. Cached for live sites; always fresh
  * during owner /preview so onboarding changes show up immediately.
+ * Tagged per-slug so reservations/leads can bust the cache immediately.
  */
 export async function getPublicTenant(slug: string) {
   const headerStore = await headers();
   if (headerStore.get("x-truebreeds-preview") === "1") {
     return loadTenantSiteData(slug);
   }
-  return getCachedPublicTenant(slug);
+  return unstable_cache(() => loadTenantSiteData(slug), ["public-tenant", slug], {
+    revalidate: 60,
+    tags: [tenantCacheTag(slug), "tenant"],
+  })();
 }
 
 export type PublicTenantData = NonNullable<Awaited<ReturnType<typeof getPublicTenant>>>;

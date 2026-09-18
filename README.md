@@ -159,12 +159,19 @@ earlier steps.
      - `https://truebreeds.com/auth/callback`
      - `http://localhost:3002/auth/callback`
      - `http://127.0.0.1:3002/auth/callback`
-5. **(Optional) Enable Google sign-in**: *Authentication → Providers → Google*.
-   Create an OAuth client in the
+5. **Enable Google sign-in** (required for “Continue with Google”):
+   *Authentication → Providers → Google*. Create an OAuth client in the
    [Google Cloud Console credentials page](https://console.cloud.google.com/apis/credentials),
    add Supabase's callback URL (shown on that provider settings page) as an
    authorized redirect URI, then paste the client ID/secret back into Supabase.
-6. From your machine, with `DATABASE_URL`/`DIRECT_URL` pointed at this
+   Until this is enabled, the API returns `Unsupported provider: provider is not enabled`.
+6. **Confirmation emails (custom SMTP)** — Supabase’s default mailer is heavily
+   rate-limited and often never reaches the inbox. After Resend is set up
+   (step 3 below), configure *Authentication → SMTP* with Resend:
+   host `smtp.resend.com`, port `465`, user `resend`, password = your Resend
+   API key, sender on your verified domain. Full checklist:
+   [`docs/auth-setup.md`](docs/auth-setup.md).
+7. From your machine, with `DATABASE_URL`/`DIRECT_URL` pointed at this
    project, run:
    ```bash
    npx prisma db push
@@ -211,11 +218,19 @@ platform's own account (membership subscription) and Stripe Connect
 
 ### 3. Transactional email — Resend
 
+Resend powers **app** mail (contact leads, waitlist, deposit receipts).
+**Signup confirmation** mail is sent by Supabase Auth — point Supabase SMTP at
+Resend (see step 1.6 / [`docs/auth-setup.md`](docs/auth-setup.md)) or those
+emails will hit rate limits and often never arrive.
+
 1. Create an account at [resend.com](https://resend.com) and an API key at
    [resend.com/api-keys](https://resend.com/api-keys) → `RESEND_API_KEY`.
+   Do **not** leave a placeholder like `re_...` — the app will fail to send.
 2. Verify a sending domain at [resend.com/domains](https://resend.com/domains)
    (add the DNS records it gives you), then set `EMAIL_FROM` to an address on
    that domain, e.g. `TrueBreeds <notifications@mail.truebreeds.com>`.
+3. In Supabase, use the same API key as the SMTP password so Auth confirmation
+   emails send through Resend as well.
 
 ### 4. Hosting — Vercel
 

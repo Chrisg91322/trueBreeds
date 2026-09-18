@@ -8,10 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { signInWithGoogle } from "@/lib/auth-oauth";
 
 export function LoginForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -23,6 +25,8 @@ export function LoginForm() {
       );
     } else if (code === "session") {
       setError("Your session expired. Please sign in again.");
+    } else if (code === "auth") {
+      setError("Sign-in didn’t complete. Try again or use email/password.");
     }
   }, []);
 
@@ -49,11 +53,14 @@ export function LoginForm() {
   }
 
   async function handleGoogle() {
+    setGoogleLoading(true);
+    setError(null);
     const supabase = createSupabaseBrowserClient();
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
-    });
+    const message = await signInWithGoogle(supabase);
+    if (message) {
+      setError(message);
+      setGoogleLoading(false);
+    }
   }
 
   return (
@@ -63,7 +70,14 @@ export function LoginForm() {
         <p className="mt-1 text-sm text-muted-foreground">Sign in to your TrueBreeds dashboard.</p>
       </div>
 
-      <Button variant="outline" className="w-full" onClick={handleGoogle} type="button">
+      <Button
+        variant="outline"
+        className="w-full"
+        onClick={handleGoogle}
+        type="button"
+        disabled={googleLoading || loading}
+      >
+        {googleLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
         Continue with Google
       </Button>
 
@@ -81,7 +95,7 @@ export function LoginForm() {
           <Input id="password" name="password" type="password" required className="mt-1.5" />
         </div>
         {error && <p className="text-sm text-destructive">{error}</p>}
-        <Button type="submit" className="w-full" disabled={loading}>
+        <Button type="submit" className="w-full" disabled={loading || googleLoading}>
           {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Sign in
         </Button>

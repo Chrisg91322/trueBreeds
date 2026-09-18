@@ -12,7 +12,7 @@ const config = {
   address: "United States (mailing address available on request at support@truebreeds.com)",
   jurisdiction: "the State of Delaware, United States",
   supportEmail: "support@truebreeds.com",
-  privacyEmail: "privacy@truebreeds.com",
+  privacyEmail: "support@truebreeds.com",
   lastUpdated: "September 16, 2026",
   effectiveDate: "September 16, 2026",
   priceChangeNoticeDays: "30",
@@ -39,7 +39,7 @@ const config = {
   baseCountry: "the United States",
   transferCountries: "the United States and other countries where our service providers operate",
   dpoContact:
-    "For privacy requests, email privacy@truebreeds.com. We have not appointed a separate EU or UK representative at this time.",
+    "For privacy requests, email support@truebreeds.com. We have not appointed a separate EU or UK representative at this time.",
 } as const;
 
 const termsNav = [

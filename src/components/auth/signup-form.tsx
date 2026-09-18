@@ -9,19 +9,25 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { PLAN_COOKIE, type PlanTier } from "@/lib/plans";
+import { authCallbackUrl, signInWithGoogle } from "@/lib/auth-oauth";
 
 function rememberPlan(plan?: PlanTier) {
   if (!plan) return;
   document.cookie = `${PLAN_COOKIE}=${plan}; Path=/; Max-Age=604800; SameSite=Lax`;
 }
 
-function authRedirectUrl() {
-  return `${window.location.origin}/auth/callback`;
+function friendlyAuthError(message: string) {
+  const lower = message.toLowerCase();
+  if (lower.includes("rate limit") || lower.includes("email rate limit")) {
+    return "Too many confirmation emails were sent recently. Wait a few minutes, then try again — or sign in if you already created an account.";
+  }
+  return message;
 }
 
 export function SignupForm({ plan }: { plan?: PlanTier }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmSent, setConfirmSent] = useState(false);
 
@@ -36,17 +42,19 @@ export function SignupForm({ plan }: { plan?: PlanTier }) {
     const { data, error } = await supabase.auth.signUp({
       email: String(form.get("email")),
       password: String(form.get("password")),
-      options: { emailRedirectTo: authRedirectUrl() },
+      options: { emailRedirectTo: authCallbackUrl() },
     });
 
     if (error) {
-      setError(error.message);
+      setError(friendlyAuthError(error.message));
       setLoading(false);
       return;
     }
 
     if (!data.session) {
       // Email confirmation required before a session exists.
+      // Note: Supabase may still return a user when the mailer is rate-limited;
+      // the UI message below covers “check spam / wait and retry”.
       setConfirmSent(true);
       setLoading(false);
       return;
@@ -58,11 +66,14 @@ export function SignupForm({ plan }: { plan?: PlanTier }) {
 
   async function handleGoogle() {
     rememberPlan(plan);
+    setGoogleLoading(true);
+    setError(null);
     const supabase = createSupabaseBrowserClient();
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: authRedirectUrl() },
-    });
+    const message = await signInWithGoogle(supabase);
+    if (message) {
+      setError(message);
+      setGoogleLoading(false);
+    }
   }
 
   if (confirmSent) {
@@ -70,7 +81,15 @@ export function SignupForm({ plan }: { plan?: PlanTier }) {
       <div className="w-full max-w-sm space-y-3 text-center">
         <h1 className="text-2xl font-semibold">Check your email</h1>
         <p className="text-sm text-muted-foreground">
-          We sent you a confirmation link. Click it to finish creating your account.
+          We sent a confirmation link (check spam). If nothing arrives within a
+          few minutes, wait and try again — Supabase’s default mailer is
+          rate-limited until custom SMTP is configured.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          Already confirmed?{" "}
+          <Link href="/login" className="font-medium text-primary hover:underline">
+            Sign in
+          </Link>
         </p>
       </div>
     );
@@ -85,7 +104,14 @@ export function SignupForm({ plan }: { plan?: PlanTier }) {
         </p>
       </div>
 
-      <Button variant="outline" className="w-full" onClick={handleGoogle} type="button">
+      <Button
+        variant="outline"
+        className="w-full"
+        onClick={handleGoogle}
+        type="button"
+        disabled={googleLoading || loading}
+      >
+        {googleLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
         Continue with Google
       </Button>
 
@@ -103,7 +129,7 @@ export function SignupForm({ plan }: { plan?: PlanTier }) {
           <Input id="password" name="password" type="password" minLength={8} required className="mt-1.5" />
         </div>
         {error && <p className="text-sm text-destructive">{error}</p>}
-        <Button type="submit" className="w-full" disabled={loading}>
+        <Button type="submit" className="w-full" disabled={loading || googleLoading}>
           {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Create account
         </Button>

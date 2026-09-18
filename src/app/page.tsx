@@ -125,6 +125,12 @@ export default function MarketingHomePage() {
               Start your site <ArrowRight className="ml-1.5 h-4 w-4" />
             </Link>
             <Link
+              href="/faq"
+              className={cn(buttonVariants({ variant: "outline", size: "lg" }), "w-full sm:w-auto")}
+            >
+              How it works
+            </Link>
+            <Link
               href="#pricing"
               className={cn(buttonVariants({ variant: "outline", size: "lg" }), "w-full sm:w-auto")}
             >
@@ -164,6 +170,10 @@ export default function MarketingHomePage() {
 
       <footer className="border-t px-4 py-10 text-center text-sm text-muted-foreground sm:px-6">
         © {new Date().getFullYear()} trueBreeds ·{" "}
+        <Link href="/faq" className="hover:underline">
+          FAQ
+        </Link>{" "}
+        ·{" "}
         <Link href="/terms" className="hover:underline">
           Terms
         </Link>{" "}

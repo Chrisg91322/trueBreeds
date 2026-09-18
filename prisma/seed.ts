@@ -72,12 +72,31 @@ async function main() {
       },
       stripeAccount: {
         create: {
+          // Placeholder only — keep chargesEnabled false so public deposits use soft reservation in local/demo.
           stripeAccountId: "acct_demo_seed_placeholder",
-          chargesEnabled: true,
+          chargesEnabled: false,
           payoutsEnabled: true,
           detailsSubmitted: true,
         },
       },
+    },
+  });
+
+  // Keep Connect flags in sync on re-seed (create-only nested writes are skipped on update).
+  await prisma.stripeConnectAccount.upsert({
+    where: { tenantId: tenant.id },
+    update: {
+      stripeAccountId: "acct_demo_seed_placeholder",
+      chargesEnabled: false,
+      payoutsEnabled: false,
+      detailsSubmitted: true,
+    },
+    create: {
+      tenantId: tenant.id,
+      stripeAccountId: "acct_demo_seed_placeholder",
+      chargesEnabled: false,
+      payoutsEnabled: false,
+      detailsSubmitted: true,
     },
   });
 
