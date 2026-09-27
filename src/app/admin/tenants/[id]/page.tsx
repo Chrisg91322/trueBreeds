@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { PawPrint, Heart, DollarSign, Users } from "lucide-react";
 import { startImpersonation, suspendTenant, reactivateTenant } from "@/lib/actions/admin";
+import { DeleteTenantButton } from "@/components/admin/delete-tenant-button";
 
 export const dynamic = "force-dynamic";
 
@@ -36,12 +37,12 @@ export default async function AdminTenantDetailPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold">{tenant.kennelName}</h1>
           <p className="text-sm text-muted-foreground">{tenant.slug}.truebreeds.com</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           <Badge variant="outline" className="capitalize">
             {tenant.status.replace("_", " ")}
           </Badge>
@@ -61,6 +62,7 @@ export default async function AdminTenantDetailPage({
               </Button>
             </form>
           )}
+          <DeleteTenantButton tenantId={tenant.id} kennelName={tenant.kennelName} />
         </div>
       </div>
 

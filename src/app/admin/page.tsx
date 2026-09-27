@@ -13,7 +13,7 @@ export default async function AdminOverviewPage() {
   const sinceWeek = new Date();
   sinceWeek.setDate(sinceWeek.getDate() - 7);
 
-  const [totalTenants, activeTenants, suspendedTenants, activeSubs, newThisWeek, recentTenants] =
+  const [totalTenants, activeTenants, suspendedTenants, activeSubs, newThisWeek, recentTenants, recentUsers] =
     await Promise.all([
       prisma.tenant.count(),
       prisma.tenant.count({ where: { status: "active" } }),
@@ -27,6 +27,17 @@ export default async function AdminOverviewPage() {
         orderBy: { createdAt: "desc" },
         take: 8,
         include: { subscription: true },
+      }),
+      prisma.user.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 8,
+        include: {
+          memberships: {
+            include: { tenant: { select: { kennelName: true } } },
+            take: 1,
+            orderBy: { createdAt: "asc" },
+          },
+        },
       }),
     ]);
 
@@ -48,6 +59,9 @@ export default async function AdminOverviewPage() {
       </div>
 
       <div className="flex flex-wrap gap-3 text-sm">
+        <Link href="/admin/users" className="text-primary hover:underline">
+          All signed-up users →
+        </Link>
         <Link href="/admin/seo" className="text-primary hover:underline">
           SEO readiness →
         </Link>
@@ -56,31 +70,63 @@ export default async function AdminOverviewPage() {
         </Link>
       </div>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0">
-          <CardTitle className="text-base">Recent signups</CardTitle>
-          <Link href="/admin/tenants" className="text-sm text-primary hover:underline">
-            View all tenants
-          </Link>
-        </CardHeader>
-        <CardContent className="divide-y p-0">
-          {recentTenants.map((t) => (
-            <Link
-              key={t.id}
-              href={`/admin/tenants/${t.id}`}
-              className="flex items-center justify-between px-6 py-3 hover:bg-muted/50"
-            >
-              <div>
-                <div className="text-sm font-medium">{t.kennelName}</div>
-                <div className="text-xs text-muted-foreground">{t.slug}.truebreeds.com</div>
-              </div>
-              <Badge variant="outline" className="capitalize">
-                {t.status.replace("_", " ")}
-              </Badge>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-base">Recent signups</CardTitle>
+            <Link href="/admin/tenants" className="text-sm text-primary hover:underline">
+              View all tenants
             </Link>
-          ))}
-        </CardContent>
-      </Card>
+          </CardHeader>
+          <CardContent className="divide-y p-0">
+            {recentTenants.map((t) => (
+              <Link
+                key={t.id}
+                href={`/admin/tenants/${t.id}`}
+                className="flex items-center justify-between px-6 py-3 hover:bg-muted/50"
+              >
+                <div>
+                  <div className="text-sm font-medium">{t.kennelName}</div>
+                  <div className="text-xs text-muted-foreground">{t.slug}.truebreeds.com</div>
+                </div>
+                <Badge variant="outline" className="capitalize">
+                  {t.status.replace("_", " ")}
+                </Badge>
+              </Link>
+            ))}
+            {recentTenants.length === 0 && (
+              <p className="px-6 py-8 text-sm text-muted-foreground">No kennels yet.</p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-base">Signed-up users</CardTitle>
+            <Link href="/admin/users" className="text-sm text-primary hover:underline">
+              View all users
+            </Link>
+          </CardHeader>
+          <CardContent className="divide-y p-0">
+            {recentUsers.map((user) => (
+              <div key={user.id} className="flex items-center justify-between gap-3 px-6 py-3">
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-medium">{user.fullName || user.email}</div>
+                  <div className="truncate text-xs text-muted-foreground">
+                    {user.memberships[0]?.tenant.kennelName || user.email}
+                  </div>
+                </div>
+                <Badge variant="outline" className="shrink-0 capitalize">
+                  {user.platformRole.replace(/_/g, " ")}
+                </Badge>
+              </div>
+            ))}
+            {recentUsers.length === 0 && (
+              <p className="px-6 py-8 text-sm text-muted-foreground">No users yet.</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
