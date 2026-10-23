@@ -12,7 +12,7 @@ export function SitePreviewBanner() {
         </div>
         <div className="flex flex-wrap gap-3 text-xs font-semibold">
           <Link href="/onboarding?step=billing" className="underline hover:opacity-80">
-            Choose membership
+            Contact support
           </Link>
           <Link href="/onboarding?step=publish" className="underline hover:opacity-80">
             Publish

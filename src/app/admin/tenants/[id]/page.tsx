@@ -5,17 +5,20 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { PawPrint, Heart, DollarSign, Users } from "lucide-react";
-import { startImpersonation, suspendTenant, reactivateTenant } from "@/lib/actions/admin";
+import { startImpersonation, suspendTenant, reactivateTenant, sendOwnerLoginLink } from "@/lib/actions/admin";
 import { DeleteTenantButton } from "@/components/admin/delete-tenant-button";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminTenantDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ login?: string }>;
 }) {
   const { id } = await params;
+  const { login } = await searchParams;
 
   const tenant = await prisma.tenant.findUnique({
     where: { id },
@@ -51,6 +54,12 @@ export default async function AdminTenantDetailPage({
               Impersonate
             </Button>
           </form>
+          <form action={sendOwnerLoginLink}>
+            <input type="hidden" name="tenantId" value={tenant.id} />
+            <Button type="submit" variant="outline">
+              Send login link
+            </Button>
+          </form>
           {isSuspended ? (
             <form action={reactivateTenant.bind(null, tenant.id)}>
               <Button type="submit">Reactivate</Button>
@@ -65,6 +74,16 @@ export default async function AdminTenantDetailPage({
           <DeleteTenantButton tenantId={tenant.id} kennelName={tenant.kennelName} />
         </div>
       </div>
+
+      {login === "sent" && (
+        <p className="text-sm text-emerald-700">Login link sent to the owner.</p>
+      )}
+      {login === "failed" && (
+        <p className="text-sm text-destructive">Couldn’t send the login link. Try again in a minute.</p>
+      )}
+      {login === "missing" && (
+        <p className="text-sm text-destructive">This kennel has no owner email to send a link to.</p>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Dogs" value={animalCount} icon={PawPrint} />
@@ -90,6 +109,9 @@ export default async function AdminTenantDetailPage({
               Plan:{" "}
               <span className="font-medium capitalize">{tenant.subscription?.plan ?? "none"}</span>
             </div>
+            {tenant.subscription && !tenant.subscription.stripeSubscriptionId && (
+              <div>Billing: Manual — active, not billed in Stripe</div>
+            )}
             {tenant.subscription?.currentPeriodEnd && (
               <div>Renews: {tenant.subscription.currentPeriodEnd.toLocaleDateString()}</div>
             )}

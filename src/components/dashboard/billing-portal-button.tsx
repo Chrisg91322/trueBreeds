@@ -24,7 +24,7 @@ export function BillingPortalButton() {
   return (
     <Button onClick={handleClick} disabled={loading} variant="outline">
       {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-      Manage billing
+      Payment method & cancel
     </Button>
   );
 }

@@ -6,14 +6,8 @@ import type { Tenant } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
+import { SpeciesSelect } from "@/components/dashboard/species-select";
 import { Loader2 } from "lucide-react";
 import { updateGeneralSettings } from "@/lib/actions/settings";
 
@@ -54,15 +48,12 @@ export function GeneralSettingsForm({ tenant }: { tenant: Tenant }) {
           </div>
           <div>
             <Label htmlFor="species">Species</Label>
-            <Select name="species" defaultValue={tenant.species}>
-              <SelectTrigger id="species" className="mt-1.5 w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="dog">Dogs</SelectItem>
-                <SelectItem value="cat">Cats</SelectItem>
-              </SelectContent>
-            </Select>
+            <SpeciesSelect
+              id="species"
+              defaultValue={tenant.species}
+              plural
+              className="mt-1.5 w-full"
+            />
           </div>
           <div>
             <Label htmlFor="breeds">Breed(s), comma-separated</Label>

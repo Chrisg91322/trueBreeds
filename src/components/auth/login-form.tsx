@@ -38,12 +38,17 @@ export function LoginForm() {
     const supabase = createSupabaseBrowserClient();
 
     const { error } = await supabase.auth.signInWithPassword({
-      email: String(form.get("email")),
+      email: String(form.get("email")).trim().toLowerCase(),
       password: String(form.get("password")),
     });
 
     if (error) {
-      setError(error.message);
+      const message = error.message.toLowerCase();
+      setError(
+        message.includes("invalid login")
+          ? "That email and password don’t match. Use the password from signup, or reset it."
+          : error.message
+      );
       setLoading(false);
       return;
     }
@@ -91,7 +96,12 @@ export function LoginForm() {
           <Input id="email" name="email" type="email" required className="mt-1.5" />
         </div>
         <div>
-          <Label htmlFor="password">Password</Label>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="password">Password</Label>
+            <Link href="/forgot-password" className="text-xs font-medium text-primary hover:underline">
+              Forgot password?
+            </Link>
+          </div>
           <Input id="password" name="password" type="password" required className="mt-1.5" />
         </div>
         {error && <p className="text-sm text-destructive">{error}</p>}

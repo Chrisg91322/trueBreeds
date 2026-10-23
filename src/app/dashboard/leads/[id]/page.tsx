@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { LeadStatusSelect } from "@/components/dashboard/lead-status-select";
 import { addLeadNote } from "@/lib/actions/leads";
+import { youngAnimalLabel } from "@/lib/species";
 
 export default async function LeadDetailPage({
   params,
@@ -73,7 +74,10 @@ export default async function LeadDetailPage({
         <Card>
           <CardHeader><CardTitle className="text-base">Interested in</CardTitle></CardHeader>
           <CardContent className="text-sm">
-            {lead.offspring.name ?? lead.offspring.litter.breed ?? "A puppy"} —{" "}
+            {lead.offspring.name ??
+              lead.offspring.litter.breed ??
+              `A ${youngAnimalLabel(lead.offspring.litter.species)}`}{" "}
+            —{" "}
             {lead.offspring.status.replace("_", " ")}
           </CardContent>
         </Card>

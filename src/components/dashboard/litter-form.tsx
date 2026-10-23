@@ -11,6 +11,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ImageUploadField } from "@/components/dashboard/image-upload-field";
+import { SpeciesSelect } from "@/components/dashboard/species-select";
+import type { SpeciesId } from "@/lib/species";
 
 type AnimalOption = { id: string; name: string; sex: "male" | "female" };
 
@@ -23,7 +25,7 @@ export function LitterForm({
 }: {
   action: (formData: FormData) => void;
   litter?: Litter;
-  defaultSpecies: "dog" | "cat";
+  defaultSpecies: SpeciesId;
   sires: AnimalOption[];
   dams: AnimalOption[];
 }) {
@@ -31,13 +33,7 @@ export function LitterForm({
     <form action={action} className="max-w-2xl space-y-5">
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Species" htmlFor="species">
-          <Select name="species" defaultValue={litter?.species ?? defaultSpecies}>
-            <SelectTrigger id="species" className="w-full"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="dog">Dog</SelectItem>
-              <SelectItem value="cat">Cat</SelectItem>
-            </SelectContent>
-          </Select>
+          <SpeciesSelect id="species" defaultValue={litter?.species ?? defaultSpecies} className="w-full" />
         </Field>
         <Field label="Breed" htmlFor="breed">
           <Input id="breed" name="breed" defaultValue={litter?.breed ?? ""} />

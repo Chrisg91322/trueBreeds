@@ -104,6 +104,7 @@ enum ThemePreset {
 enum Species {
   dog
   cat
+  livestock
 }
 
 model Tenant {
@@ -165,6 +166,7 @@ model Tenant {
   balanceInvoices  BalanceInvoice[]
   stripeAccount    StripeConnectAccount?
   subscription     PlatformSubscription?
+  billingEmails    BillingEmailLog[]
   amazonSettings   AmazonSettings?
   affiliateProducts AffiliateProduct[]
   affiliateClicks  AffiliateClick[]
@@ -216,6 +218,7 @@ model Animal {
   sex         Sex
   dateOfBirth DateTime?
   color       String?
+  coatType    String?
   weightLbs   Float?
   bio         String?
   isBreedingStock Boolean @default(true)
@@ -225,8 +228,16 @@ model Animal {
   registryNumber String?
   titles         String[] @default([])
   healthTests    Json?    // e.g. [{ "test": "OFA Hips", "result": "Good", "date": "2024-01-01", "certUrl": "..." }]
+  // Uploaded files shown as links on the public bio.
+  // e.g. [{ "label": "OFA Hips", "url": "https://..." }]
+  healthCertificates Json?
   pedigreeUrl    String?
   embarkUrl      String?
+  // Parent names. sireId/damId point at another animal when the name matches.
+  sireName       String?
+  damName        String?
+  sireId         String?
+  damId          String?
 
   coverPhotoUrl String?
   createdAt DateTime @default(now())
@@ -234,10 +245,17 @@ model Animal {
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
+  sireAnimal Animal? @relation("AnimalSire", fields: [sireId], references: [id], onDelete: SetNull)
+  damAnimal  Animal? @relation("AnimalDam", fields: [damId], references: [id], onDelete: SetNull)
+  childrenAsSire Animal[] @relation("AnimalSire")
+  childrenAsDam  Animal[] @relation("AnimalDam")
+
   littersAsSire Litter[] @relation("SireLitters")
   littersAsDam  Litter[] @relation("DamLitters")
 
   @@index([tenantId])
+  @@index([sireId])
+  @@index([damId])
   @@map("animals")
 }
 
@@ -493,6 +511,20 @@ model PlatformSubscription {
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@map("platform_subscriptions")
+}
+
+/// One row per membership email so Stripe webhook retries don't send a second receipt.
+model BillingEmailLog {
+  id        String   @id @default(uuid())
+  dedupeKey String   @unique
+  tenantId  String
+  kind      String
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("billing_email_logs")
 }
 
 model StripeConnectAccount {

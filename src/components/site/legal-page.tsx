@@ -8,7 +8,7 @@ const config = {
   companyName: "TrueBreeds",
   productName: "TrueBreeds",
   website: "www.truebreeds.com",
-  pricingUrl: "https://www.truebreeds.com/#pricing",
+  pricingUrl: "https://www.truebreeds.com/start",
   address: "United States (mailing address available on request at support@truebreeds.com)",
   jurisdiction: "the State of Delaware, United States",
   supportEmail: "support@truebreeds.com",
@@ -27,7 +27,7 @@ const config = {
   supportHours: "business hours, U.S. Eastern Time, Monday–Friday",
   exportMethod: "a request to support@truebreeds.com (account and kennel data export by request)",
   refundPolicy:
-    "The $297 one-time setup fee is non-refundable once onboarding checkout is completed, except as required by law. Monthly membership fees are non-refundable for the current billing period; you may cancel at any time and retain access through the end of that period. We may issue goodwill or statutory refunds at our discretion.",
+    "The one-time setup fee is non-refundable once onboarding checkout is completed, except as required by law. Monthly membership fees are non-refundable for the current billing period; you may cancel at any time and retain access through the end of that period. We may issue goodwill or statutory refunds at our discretion.",
   disputeResolution:
     "in the state or federal courts located in Delaware, United States, unless mandatory consumer law requires otherwise",
   ssoProviders: "Google",
@@ -187,8 +187,9 @@ export function LegalPage() {
             {c.jurisdiction} and principal contact at {c.address}.
           </p>
           <p>
-            {c.productName} is a multi-tenant software platform that helps dog and cat breeders
-            create kennel websites, manage litters and animals, collect leads and waitlist interest,
+            {c.productName} is a CRM for breeders of livestock, dogs, and cats. It includes a
+            website we can set up and update, tools to manage litters and animals, leads and waitlist
+            interest,
             and (where enabled) accept buyer deposits and related payments. Public kennel sites may
             appear at subdomains of {c.website} (for example,{" "}
             <em>yourkennel.truebreeds.com</em>) or on a custom domain you configure.
@@ -224,12 +225,11 @@ export function LegalPage() {
           <h3 id="t-3">3. Subscriptions and billing</h3>
           <p>
             The Service is offered with a one-time setup fee and a recurring membership (Basic, Pro,
-            or Premium), as described at{" "}
+            or Premium). Current pricing is shared when you{" "}
             <a href={c.pricingUrl} rel="noopener noreferrer">
-              {c.pricingUrl}
+              inquire
             </a>
-            . Current list pricing is a $297 setup fee plus monthly membership fees; exact amounts
-            and features shown at signup or in your billing settings control.
+            . Amounts shown at checkout or in your billing settings control.
           </p>
           <ul>
             <li>

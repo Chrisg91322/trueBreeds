@@ -2,6 +2,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getPublicTenant } from "@/lib/site-data";
 import { SectionHeading } from "@/components/site/section-heading";
+import { youngAnimalLabel } from "@/lib/species";
 
 export const revalidate = 60;
 
@@ -19,7 +20,7 @@ export default async function PastLittersPage({
       <SectionHeading
         eyebrow="Our History"
         title="Past litters"
-        description="A look back at the puppies we've raised and placed in loving homes."
+        description={`A look back at the ${youngAnimalLabel(data.tenant.species, 2)} we've raised and placed in loving homes.`}
       />
       {data.pastLitters.length === 0 ? (
         <p className="mt-10 site-muted">No past litters published yet.</p>
@@ -38,7 +39,7 @@ export default async function PastLittersPage({
                 </div>
                 <div className="mt-1 text-sm site-muted">
                   {l.whelpDate ? new Date(l.whelpDate).toLocaleDateString() : ""} ·{" "}
-                  {l.offspring.length} {l.offspring.length === 1 ? "puppy" : "puppies"}
+                  {l.offspring.length} {youngAnimalLabel(l.species, l.offspring.length)}
                 </div>
               </div>
             </div>

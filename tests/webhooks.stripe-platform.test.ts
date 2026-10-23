@@ -24,10 +24,22 @@ vi.mock("@/lib/prisma", () => ({
 
 const startGracePeriod = vi.fn();
 const reactivateTenant = vi.fn();
+const planFromStripeSubscription = vi.fn();
 vi.mock("@/lib/stripe/platform-billing", () => ({
   startGracePeriod,
   reactivateTenant,
-  planFromStripeSubscription: vi.fn(),
+  planFromStripeSubscription,
+}));
+
+const sendCheckoutSubscriptionReceipt = vi.fn();
+const sendInvoiceSubscriptionReceipt = vi.fn();
+const sendPaymentFailedNotice = vi.fn();
+const sendSubscriptionLifecycleNotices = vi.fn();
+vi.mock("@/lib/billing/subscription-notices", () => ({
+  sendCheckoutSubscriptionReceipt,
+  sendInvoiceSubscriptionReceipt,
+  sendPaymentFailedNotice,
+  sendSubscriptionLifecycleNotices,
 }));
 
 function makeRequest(body: string) {
@@ -87,6 +99,11 @@ describe("POST /api/webhooks/stripe (platform billing)", () => {
     expect(onboardingProgressUpsert).toHaveBeenCalledWith(
       expect.objectContaining({ where: { tenantId: "tenant-1" } })
     );
+    expect(sendCheckoutSubscriptionReceipt).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({ tenantId: "tenant-1", plan: "pro" }),
+      })
+    );
   });
 
   it("ignores checkout.session.completed events for unrelated products", async () => {
@@ -99,10 +116,11 @@ describe("POST /api/webhooks/stripe (platform billing)", () => {
     await POST(makeRequest("{}"));
 
     expect(platformSubscriptionUpdate).not.toHaveBeenCalled();
+    expect(sendCheckoutSubscriptionReceipt).not.toHaveBeenCalled();
   });
 
   it("starts the grace period when a subscription invoice payment fails", async () => {
-    platformSubscriptionFindUnique.mockResolvedValue({ tenantId: "tenant-1" });
+    platformSubscriptionFindUnique.mockResolvedValue({ tenantId: "tenant-1", plan: "pro" });
     constructEvent.mockReturnValue({
       type: "invoice.payment_failed",
       data: { object: { customer: "cus_123" } },
@@ -112,6 +130,9 @@ describe("POST /api/webhooks/stripe (platform billing)", () => {
     await POST(makeRequest("{}"));
 
     expect(startGracePeriod).toHaveBeenCalledWith("tenant-1");
+    expect(sendPaymentFailedNotice).toHaveBeenCalledWith(
+      expect.objectContaining({ tenantId: "tenant-1", plan: "pro" })
+    );
   });
 
   it("reactivates a tenant recovering from grace_period after a successful payment", async () => {
@@ -128,6 +149,7 @@ describe("POST /api/webhooks/stripe (platform billing)", () => {
     await POST(makeRequest("{}"));
 
     expect(reactivateTenant).toHaveBeenCalledWith("tenant-1");
+    expect(sendInvoiceSubscriptionReceipt).toHaveBeenCalled();
   });
 
   it("does not re-run reactivation for a subscription that is already active", async () => {
@@ -141,5 +163,44 @@ describe("POST /api/webhooks/stripe (platform billing)", () => {
     await POST(makeRequest("{}"));
 
     expect(reactivateTenant).not.toHaveBeenCalled();
+    expect(sendInvoiceSubscriptionReceipt).toHaveBeenCalled();
+  });
+
+  it("emails upgrade, downgrade, and cancellation confirmations from subscription changes", async () => {
+    platformSubscriptionFindUnique.mockResolvedValue({
+      tenantId: "tenant-1",
+      plan: "pro",
+      cancelAtPeriodEnd: false,
+      currentPeriodEnd: null,
+    });
+    planFromStripeSubscription.mockReturnValueOnce("basic");
+    constructEvent.mockReturnValue({
+      type: "customer.subscription.updated",
+      data: {
+        object: {
+          id: "sub_123",
+          customer: "cus_123",
+          status: "active",
+          cancel_at_period_end: false,
+          items: { data: [{ price: { id: "price_basic" }, current_period_end: 1_800_000_000 }] },
+        },
+      },
+    });
+
+    const { POST } = await import("@/app/api/webhooks/stripe/route");
+    await POST(makeRequest("{}"));
+
+    expect(sendSubscriptionLifecycleNotices).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tenantId: "tenant-1",
+        previousPlan: "pro",
+        nextPlan: "basic",
+        previousCancelAtPeriodEnd: false,
+        cancelAtPeriodEnd: false,
+        status: "active",
+        eventType: "customer.subscription.updated",
+        stripeSubscriptionId: "sub_123",
+      })
+    );
   });
 });

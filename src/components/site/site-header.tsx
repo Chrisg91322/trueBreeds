@@ -40,6 +40,7 @@ export function SiteHeader({
               alt={kennelName}
               width={40}
               height={40}
+              unoptimized={/\.ico($|\?)/i.test(logoUrl)}
               className="h-10 w-10 rounded-full object-cover"
             />
           ) : (

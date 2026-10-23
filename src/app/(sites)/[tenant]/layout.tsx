@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { getPublicTenant } from "@/lib/site-data";
-import { tenantSiteIcons } from "@/lib/site-icons";
+import { tenantBrandMark, tenantSiteIcons } from "@/lib/site-icons";
+import { PREVIEW_HEADER } from "@/lib/preview";
 import { getThemeCssVars } from "@/lib/theme";
 import { SiteHeader } from "@/components/site/site-header";
 import { SiteFooter } from "@/components/site/site-footer";
@@ -22,10 +23,12 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { tenant: slug } = await params;
   const headerStore = await headers();
-  const isPreview = headerStore.get("x-truebreeds-preview") === "1";
+  const isPreview = headerStore.get(PREVIEW_HEADER) === "1";
   const data = await getPublicTenant(slug);
   if (!data) return {};
   const { tenant } = data;
+  const icons = tenantSiteIcons(tenant.faviconUrl, tenant.logoUrl);
+  const brandMark = tenantBrandMark(tenant.logoUrl, tenant.faviconUrl);
   const origin = tenantSiteOrigin(tenant.slug, tenant.customDomain);
   const titleDefault =
     tenant.seoTitle?.trim() ||
@@ -44,7 +47,7 @@ export async function generateMetadata({
       template: `%s · ${tenant.kennelName}`,
     },
     description,
-    icons: tenantSiteIcons(tenant.faviconUrl, tenant.logoUrl),
+    ...(icons ? { icons } : {}),
     alternates: isPreview ? undefined : { canonical: origin },
     openGraph: {
       type: "website",
@@ -54,8 +57,8 @@ export async function generateMetadata({
       description,
       images: tenant.heroImageUrl
         ? [{ url: tenant.heroImageUrl, alt: tenant.kennelName }]
-        : tenant.logoUrl
-          ? [{ url: tenant.logoUrl, alt: tenant.kennelName }]
+        : brandMark
+          ? [{ url: brandMark, alt: tenant.kennelName }]
           : undefined,
     },
     twitter: {
@@ -78,11 +81,12 @@ export default async function TenantSiteLayout({
 }) {
   const { tenant: slug } = await params;
   const headerStore = await headers();
-  const isPreview = headerStore.get("x-truebreeds-preview") === "1";
+  const isPreview = headerStore.get(PREVIEW_HEADER) === "1";
   const data = await getPublicTenant(slug);
   if (!data) notFound();
 
   const { tenant } = data;
+  const brandMark = tenantBrandMark(tenant.logoUrl, tenant.faviconUrl);
   const style = getThemeCssVars(tenant.themePreset, tenant.accentColor);
   const basePath = isPreview ? "/preview" : "";
   const subscription = await prisma.platformSubscription.findUnique({
@@ -100,7 +104,7 @@ export default async function TenantSiteLayout({
         <div className={cn(isPreview && "[&_header]:top-[2.75rem]")}>
           <SiteHeader
             kennelName={tenant.kennelName}
-            logoUrl={tenant.logoUrl}
+            logoUrl={brandMark}
             hasAffiliateProducts={data.affiliateProducts.length > 0}
           />
         </div>

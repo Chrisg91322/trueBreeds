@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CheckCircle2 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { youngAnimalLabel } from "@/lib/species";
 
 export default async function DepositSuccessPage({
   searchParams,
@@ -12,7 +13,7 @@ export default async function DepositSuccessPage({
   const deposit = depositId
     ? await prisma.deposit.findUnique({
         where: { id: depositId },
-        include: { offspring: true, tenant: true },
+        include: { offspring: { include: { litter: true } }, tenant: true },
       })
     : null;
 
@@ -29,14 +30,14 @@ export default async function DepositSuccessPage({
         {deposit
           ? isRequest || deposit.status === "pending"
             ? `Thanks, ${deposit.buyerName}. Your reservation for ${
-                deposit.offspring.name ?? "this puppy"
+                deposit.offspring.name ?? `this ${youngAnimalLabel(deposit.offspring.litter.species)}`}
               }${
                 deposit.amount
                   ? ` ($${deposit.amount.toLocaleString()} deposit)`
                   : ""
               } was sent to ${deposit.tenant.kennelName}. They'll follow up with next steps.`
             : `Thanks, ${deposit.buyerName}. Your $${deposit.amount.toLocaleString()} deposit for ${
-                deposit.offspring.name ?? "your puppy"
+                deposit.offspring.name ?? `your ${youngAnimalLabel(deposit.offspring.litter.species)}`}
               } is confirmed. ${deposit.tenant.kennelName} will be in touch with next steps.`
           : "Your reservation has been submitted. You'll hear from the kennel shortly."}
       </p>

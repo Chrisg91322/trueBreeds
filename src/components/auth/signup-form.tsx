@@ -40,7 +40,7 @@ export function SignupForm({ plan }: { plan?: PlanTier }) {
     const supabase = createSupabaseBrowserClient();
 
     const { data, error } = await supabase.auth.signUp({
-      email: String(form.get("email")),
+      email: String(form.get("email")).trim().toLowerCase(),
       password: String(form.get("password")),
       options: { emailRedirectTo: authCallbackUrl() },
     });
@@ -100,7 +100,7 @@ export function SignupForm({ plan }: { plan?: PlanTier }) {
       <div>
         <h1 className="text-2xl font-semibold">Start your kennel site</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Live in under 15 minutes. $297 setup + memberships from $49.99/mo.
+          A CRM for livestock, dog, and cat breeders. Ask us about membership pricing.
         </p>
       </div>
 

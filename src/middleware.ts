@@ -2,6 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { classifyHostname, resolveTenantForHostname } from "@/lib/tenant-resolve";
 import { updateSupabaseSession } from "@/lib/supabase/middleware";
 import { prisma } from "@/lib/prisma";
+import { authCodeForward } from "@/lib/auth-recovery";
+import { previewRequestHeaders } from "@/lib/preview";
 
 // Runs in the Node.js runtime (not edge) so we can query Postgres directly
 // via Prisma to resolve tenants by hostname, and so Supabase's SSR helpers
@@ -21,7 +23,7 @@ export const config = {
 
 const DASHBOARD_PREFIXES = ["/dashboard", "/onboarding"];
 const ADMIN_PREFIX = "/admin";
-const AUTH_PREFIXES = ["/login", "/signup", "/reset-password"];
+const AUTH_PREFIXES = ["/login", "/signup", "/reset-password", "/forgot-password"];
 
 export async function middleware(request: NextRequest) {
   const url = request.nextUrl;
@@ -29,18 +31,26 @@ export async function middleware(request: NextRequest) {
   const resolution = classifyHostname(hostname);
 
   // Supabase email confirms / OAuth sometimes land on Site URL with ?code=
-  // (often "/") instead of /auth/callback. Forward so local + production both work.
-  const authCode = url.searchParams.get("code");
-  if (
-    authCode &&
-    (resolution.kind === "root" || resolution.kind === "www") &&
-    !url.pathname.startsWith("/auth/")
-  ) {
-    const callback = new URL("/auth/callback", request.url);
-    callback.searchParams.set("code", authCode);
-    const next = url.searchParams.get("next");
-    if (next) callback.searchParams.set("next", next);
-    return NextResponse.redirect(callback);
+  // (often "/") instead of /auth/callback. Recovery links stay on
+  // /reset-password so the browser can finish them.
+  if (resolution.kind === "root" || resolution.kind === "www") {
+    const destination = authCodeForward(url.pathname, {
+      code: url.searchParams.get("code"),
+      type: url.searchParams.get("type"),
+    });
+    if (destination) {
+      const callback = new URL(destination, request.url);
+      callback.searchParams.set("code", url.searchParams.get("code")!);
+      const type = url.searchParams.get("type");
+      if (type) callback.searchParams.set("type", type);
+      const tokenHash = url.searchParams.get("token_hash");
+      if (tokenHash && destination === "/reset-password") {
+        callback.searchParams.set("token_hash", tokenHash);
+      }
+      const next = url.searchParams.get("next");
+      if (next && destination === "/auth/callback") callback.searchParams.set("next", next);
+      return NextResponse.redirect(callback);
+    }
   }
 
   // --- Owner-only site preview on the platform domain ----------------------
@@ -77,10 +87,12 @@ export async function middleware(request: NextRequest) {
 
     const rest = url.pathname.slice("/preview".length) || "/";
     const rewritePath = `/${tenant.slug}${rest === "/" ? "" : rest}`;
-    const rewrite = NextResponse.rewrite(new URL(`${rewritePath}${url.search}`, request.url));
-    rewrite.headers.set("x-truebreeds-preview", "1");
-    rewrite.headers.set("x-truebreeds-tenant-slug", tenant.slug);
-    rewrite.headers.set("x-truebreeds-tenant-id", tenant.id);
+    const rewrite = NextResponse.rewrite(new URL(`${rewritePath}${url.search}`, request.url), {
+      request: {
+        headers: previewRequestHeaders(request.headers, tenant),
+      },
+    });
+    rewrite.headers.set("Cache-Control", "private, no-store");
     // Preserve refreshed auth cookies from the session helper.
     sessionResponse.cookies.getAll().forEach((cookie) => {
       rewrite.cookies.set(cookie);

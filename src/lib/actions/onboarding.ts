@@ -5,7 +5,9 @@ import slugify from "slugify";
 import { nanoid } from "nanoid";
 import { getSessionContext } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { revalidateTenantSite } from "@/lib/revalidate-site";
 import type { ThemePresetKey } from "@/lib/theme";
+import type { SpeciesId } from "@/lib/species";
 
 /** Creates a placeholder tenant for a freshly signed-up user, if they don't have one yet. Idempotent. */
 export async function ensureTenantForCurrentUser() {
@@ -57,7 +59,7 @@ export async function ensureTenantForCurrentUser() {
 
 export async function updateTenantProfile(
   tenantId: string,
-  data: { kennelName: string; slug: string; species: "dog" | "cat"; breeds: string[] }
+  data: { kennelName: string; slug: string; species: SpeciesId; breeds: string[] }
 ) {
   const existingSlugOwner = await prisma.tenant.findUnique({ where: { slug: data.slug } });
   if (existingSlugOwner && existingSlugOwner.id !== tenantId) {
@@ -87,13 +89,18 @@ export async function updateTenantTheme(
     tagline?: string;
   }
 ) {
-  await prisma.tenant.update({ where: { id: tenantId }, data });
+  const updated = await prisma.tenant.update({
+    where: { id: tenantId },
+    data,
+    select: { slug: true },
+  });
   await prisma.onboardingProgress.upsert({
     where: { tenantId },
     update: { themeComplete: true },
     create: { tenantId, themeComplete: true },
   });
   revalidatePath("/onboarding");
+  revalidateTenantSite(updated.slug);
 }
 
 export async function markOnboardingStep(
@@ -110,7 +117,7 @@ export async function markOnboardingStep(
 
 export async function createFirstLitter(
   tenantId: string,
-  data: { species: "dog" | "cat"; breed?: string; status: "planned" | "expecting" | "active" }
+  data: { species: SpeciesId; breed?: string; status: "planned" | "expecting" | "active" }
 ) {
   const litter = await prisma.litter.create({
     data: {

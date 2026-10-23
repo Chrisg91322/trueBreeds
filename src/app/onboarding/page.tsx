@@ -21,12 +21,16 @@ export default async function OnboardingPage({
   const cookiePlan = (await cookies()).get(PLAN_COOKIE)?.value;
   const initialPlan = isPlanTier(plan) ? plan : isPlanTier(cookiePlan) ? cookiePlan : undefined;
 
-  const [tenant, progress] = await Promise.all([
+  const [tenant, progress, owner] = await Promise.all([
     prisma.tenant.findUniqueOrThrow({ where: { id: tenantId } }),
     prisma.onboardingProgress.upsert({
       where: { tenantId },
       update: {},
       create: { tenantId },
+    }),
+    prisma.user.findUnique({
+      where: { id: session.userId },
+      select: { fullName: true, email: true },
     }),
   ]);
 
@@ -41,7 +45,17 @@ export default async function OnboardingPage({
           A few quick steps and {tenant.kennelName === "My Kennel" ? "your kennel" : tenant.kennelName} will be online.
         </p>
       </div>
-      <OnboardingWizard tenant={tenant} progress={progress} initialStep={step} initialPlan={initialPlan} />
+      <OnboardingWizard
+        tenant={tenant}
+        progress={progress}
+        initialStep={step}
+        initialPlan={initialPlan}
+        contact={{
+          name: owner?.fullName ?? "",
+          email: owner?.email || session.email,
+          phone: tenant.contactPhone ?? "",
+        }}
+      />
     </div>
   );
 }

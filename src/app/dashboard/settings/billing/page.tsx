@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BillingPortalButton } from "@/components/dashboard/billing-portal-button";
+import { MembershipPlanPicker } from "@/components/dashboard/membership-plan-picker";
+import { canChangeMembershipPlan } from "@/lib/billing/plan-change";
 import { formatPlanPrice, getPlan } from "@/lib/plans";
 
 const STATUS_STYLES: Record<string, string> = {
@@ -22,6 +24,8 @@ export default async function BillingSettingsPage() {
   });
 
   const plan = subscription?.plan ? getPlan(subscription.plan) : null;
+  const canChange = canChangeMembershipPlan(subscription);
+  const setupFeePaid = !!subscription?.setupFeePaid;
 
   return (
     <Card>
@@ -30,9 +34,12 @@ export default async function BillingSettingsPage() {
           <h3 className="font-medium">Platform membership</h3>
           <p className="mt-1 text-sm text-muted-foreground">
             {plan
-              ? `${plan.name} at ${formatPlanPrice(plan)}/month, plus a $297 one-time setup fee.`
+              ? setupFeePaid
+                ? `${plan.name} at ${formatPlanPrice(plan)}/month. The $297 setup fee is already paid.`
+                : `${plan.name} at ${formatPlanPrice(plan)}/month, plus a $297 one-time setup fee.`
               : "Choose a membership during onboarding. Includes a $297 one-time setup fee."}{" "}
-            Change or cancel any time.
+            Receipts for renewals, plan changes, and cancellations are emailed to the address on
+            your account.
           </p>
         </div>
 
@@ -57,8 +64,36 @@ export default async function BillingSettingsPage() {
           </div>
         )}
 
+        {canChange && plan ? (
+          <div className="space-y-3 border-t pt-4">
+            <div>
+              <h4 className="font-medium">Upgrade or downgrade</h4>
+              <p className="mt-1 text-sm text-muted-foreground">
+                This only changes the monthly price. The $297 setup fee is not charged again. Stripe
+                prorates the difference for the rest of this billing period.
+              </p>
+            </div>
+            <MembershipPlanPicker currentPlan={plan.id} mode="change" />
+          </div>
+        ) : setupFeePaid && plan ? (
+          <div className="space-y-3 border-t pt-4">
+            <div>
+              <h4 className="font-medium">Choose a monthly plan</h4>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Your $297 setup fee is already paid, so resubscribing only starts the monthly price.
+              </p>
+            </div>
+            <MembershipPlanPicker currentPlan={plan.id} mode="resubscribe" />
+          </div>
+        ) : null}
+
         {subscription?.stripeCustomerId ? (
-          <BillingPortalButton />
+          <div className="space-y-2 border-t pt-4">
+            <p className="text-sm text-muted-foreground">
+              Update your card, download invoices, or cancel from the billing portal.
+            </p>
+            <BillingPortalButton />
+          </div>
         ) : (
           <p className="text-sm text-muted-foreground">
             No billing on file yet — finish checkout from the onboarding flow.

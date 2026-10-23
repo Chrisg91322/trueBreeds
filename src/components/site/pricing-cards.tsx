@@ -10,10 +10,12 @@ export function PricingCards({
   selectedPlan,
   onSelect,
   ctaHref,
+  showPrices = true,
 }: {
   selectedPlan?: PlanTier;
   onSelect?: (plan: PlanTier) => void;
   ctaHref?: (plan: PlanTier) => string;
+  showPrices?: boolean;
 }) {
   return (
     <div className="grid gap-4 sm:grid-cols-3">
@@ -28,12 +30,16 @@ export function PricingCards({
             )}
             <h3 className="font-heading text-lg font-semibold">{plan.name}</h3>
             <p className="mt-1 text-sm text-muted-foreground">{plan.description}</p>
-            <div className="mt-4">
-              <span className="text-3xl font-bold">{formatPlanPrice(plan)}</span>
-              <span className="text-sm font-medium text-muted-foreground">/mo</span>
-            </div>
-            <p className="mt-1 text-sm text-muted-foreground">plus {SETUP_FEE.label}</p>
-            <ul className="mt-5 space-y-2 text-sm">
+            {showPrices && (
+              <>
+                <div className="mt-4">
+                  <span className="text-3xl font-bold">{formatPlanPrice(plan)}</span>
+                  <span className="text-sm font-medium text-muted-foreground">/mo</span>
+                </div>
+                <p className="mt-1 text-sm text-muted-foreground">plus {SETUP_FEE.label}</p>
+              </>
+            )}
+            <ul className={cn("space-y-2 text-sm", showPrices ? "mt-5" : "mt-4")}>
               {plan.features.map((feature) => (
                 <li key={feature} className="flex items-start gap-2">
                   <Check className="mt-0.5 h-4 w-4 shrink-0 text-brand-sage" />
@@ -62,7 +68,7 @@ export function PricingCards({
           );
         }
 
-        const href = ctaHref?.(plan.id) ?? `/signup?plan=${plan.id}`;
+        const href = ctaHref?.(plan.id) ?? `/start?plan=${plan.id}`;
         return (
           <div
             key={plan.id}
@@ -72,9 +78,11 @@ export function PricingCards({
             )}
           >
             {content}
-            <Link href={href} className={cn(buttonVariants({ size: "lg" }), "mt-6 w-full")}>
-              Get started
-            </Link>
+            <div className="mt-auto pt-6">
+              <Link href={href} className={cn(buttonVariants({ size: "lg" }), "w-full")}>
+                {showPrices ? "Get started" : "Ask about pricing"}
+              </Link>
+            </div>
           </div>
         );
       })}

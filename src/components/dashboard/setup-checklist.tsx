@@ -9,7 +9,7 @@ const STEPS: { key: keyof OnboardingProgress; label: string; href: string }[] = 
   { key: "firstLitterComplete", label: "Add your first litter", href: "/onboarding?step=litter" },
   { key: "stripeConnected", label: "Connect Stripe for deposits", href: "/onboarding?step=stripe" },
   { key: "socialsComplete", label: "Connect socials & Amazon (optional)", href: "/onboarding?step=extras" },
-  { key: "billingComplete", label: "Choose a membership & subscribe", href: "/onboarding?step=billing" },
+  { key: "billingComplete", label: "Email support to start your membership", href: "/onboarding?step=billing" },
   { key: "published", label: "Publish your site", href: "/onboarding?step=publish" },
 ];
 

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatusPill } from "@/components/site/status-pill";
+import { youngAnimalLabel } from "@/lib/species";
 
 export default async function LittersPage() {
   const session = await requireTenantSession();
@@ -47,7 +48,7 @@ export default async function LittersPage() {
                         : litter.breed || "Untitled Litter"}
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      {litter.offspring.length} {litter.offspring.length === 1 ? "puppy" : "puppies"}
+                      {litter.offspring.length} {youngAnimalLabel(litter.species, litter.offspring.length)}
                       {litter.whelpDate && ` · Whelped ${litter.whelpDate.toLocaleDateString()}`}
                     </div>
                   </div>

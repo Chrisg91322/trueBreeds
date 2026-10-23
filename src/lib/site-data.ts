@@ -1,7 +1,8 @@
 import "server-only";
 import { headers } from "next/headers";
-import { unstable_cache } from "next/cache";
+import { unstable_cache, unstable_noStore as noStore } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { PREVIEW_HEADER } from "@/lib/preview";
 
 export function tenantCacheTag(slug: string) {
   return `tenant:${slug}`;
@@ -69,6 +70,13 @@ async function loadTenantSiteData(slug: string) {
   };
 }
 
+function cachedPublicTenant(slug: string) {
+  return unstable_cache(() => loadTenantSiteData(slug), ["public-tenant", slug], {
+    revalidate: 60,
+    tags: [tenantCacheTag(slug), "tenant"],
+  })();
+}
+
 /**
  * Full public-site payload for a tenant. Cached for live sites; always fresh
  * during owner /preview so onboarding changes show up immediately.
@@ -76,13 +84,11 @@ async function loadTenantSiteData(slug: string) {
  */
 export async function getPublicTenant(slug: string) {
   const headerStore = await headers();
-  if (headerStore.get("x-truebreeds-preview") === "1") {
+  if (headerStore.get(PREVIEW_HEADER) === "1") {
+    noStore();
     return loadTenantSiteData(slug);
   }
-  return unstable_cache(() => loadTenantSiteData(slug), ["public-tenant", slug], {
-    revalidate: 60,
-    tags: [tenantCacheTag(slug), "tenant"],
-  })();
+  return cachedPublicTenant(slug);
 }
 
 export type PublicTenantData = NonNullable<Awaited<ReturnType<typeof getPublicTenant>>>;

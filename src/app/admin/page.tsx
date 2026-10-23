@@ -5,6 +5,8 @@ import { StatCard } from "@/components/dashboard/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PLANS } from "@/lib/plans";
+import { buttonVariants } from "@/components/ui/button-variants";
+import { cn } from "@/lib/utils";
 
 // Platform admin data is per-request and never cacheable/prerenderable.
 export const dynamic = "force-dynamic";
@@ -58,7 +60,10 @@ export default async function AdminOverviewPage() {
         <StatCard label="Suspended" value={suspendedTenants} icon={AlertTriangle} />
       </div>
 
-      <div className="flex flex-wrap gap-3 text-sm">
+      <div className="flex flex-wrap items-center gap-3 text-sm">
+        <Link href="/admin/tenants/new" className={cn(buttonVariants())}>
+          New website
+        </Link>
         <Link href="/admin/users" className="text-primary hover:underline">
           All signed-up users →
         </Link>

@@ -12,6 +12,14 @@ export function safePublicImageUrl(value: string | null | undefined): string | n
   }
 }
 
+/** Header / hero mark: logo first, then the favicon when no logo was uploaded. */
+export function tenantBrandMark(
+  logoUrl?: string | null,
+  faviconUrl?: string | null
+): string | null {
+  return safePublicImageUrl(logoUrl) || safePublicImageUrl(faviconUrl);
+}
+
 /**
  * Tenant tab icon: dedicated favicon URL, then kennel logo, otherwise inherit
  * the platform icon from the root layout.

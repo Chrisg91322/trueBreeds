@@ -1,6 +1,9 @@
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getPublicTenant } from "@/lib/site-data";
+import { parseHealthCertificates } from "@/lib/health-certificates";
+import { formatAnimalDate, linkedPuppies, parentBioLink } from "@/lib/animal-family";
+import { SiteLink } from "@/components/site/site-base-path";
 import { ShieldCheck, Award, ExternalLink } from "lucide-react";
 
 export const revalidate = 60;
@@ -20,6 +23,10 @@ export default async function AnimalDetailPage({
   const healthTests = Array.isArray(animal.healthTests)
     ? (animal.healthTests as { test: string; result?: string; date?: string; certUrl?: string }[])
     : [];
+  const certificates = parseHealthCertificates(animal.healthCertificates);
+  const sire = parentBioLink(animal.id, animal.sireName, animal.sireId, data.animals);
+  const dam = parentBioLink(animal.id, animal.damName, animal.damId, data.animals);
+  const puppies = linkedPuppies(animal.id, data.animals);
 
   return (
     <div className="mx-auto max-w-4xl px-5 py-16 sm:px-8">
@@ -29,7 +36,7 @@ export default async function AnimalDetailPage({
         )}
       </div>
 
-          <div className="mt-8 flex flex-wrap items-start justify-between gap-4">
+      <div className="mt-8 flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="site-font-heading text-3xl font-semibold">{animal.name}</h1>
@@ -40,21 +47,31 @@ export default async function AnimalDetailPage({
             )}
           </div>
           <p className="mt-1 site-muted">
-            {[animal.breed, animal.sex === "male" ? "Male" : "Female", animal.color]
+            {[
+              animal.breed,
+              animal.sex === "male" ? "Male" : "Female",
+              animal.color,
+              animal.coatType,
+            ]
               .filter(Boolean)
               .join(" · ")}
           </p>
+          {(sire || dam) && (
+            <p className="mt-2 text-sm">
+              {sire && (
+                <>
+                  Sire: <ParentName parent={sire} />
+                </>
+              )}
+              {sire && dam && " · "}
+              {dam && (
+                <>
+                  Dam: <ParentName parent={dam} />
+                </>
+              )}
+            </p>
+          )}
         </div>
-        {animal.pedigreeUrl && (
-          <a
-            href={animal.pedigreeUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-full border site-border px-4 py-2 text-sm font-medium hover:opacity-80"
-          >
-            View Pedigree <ExternalLink className="h-3.5 w-3.5" />
-          </a>
-        )}
       </div>
 
       {animal.titles.length > 0 && (
@@ -71,6 +88,50 @@ export default async function AnimalDetailPage({
       )}
 
       {animal.bio && <p className="mt-6 whitespace-pre-line leading-relaxed">{animal.bio}</p>}
+
+      {puppies.length > 0 && (
+        <div className="mt-6">
+          <h2 className="text-sm font-semibold">{puppies.length === 1 ? "Puppy" : "Puppies"}</h2>
+          <ul className="mt-2 space-y-2">
+            {puppies.map((puppy) => {
+              const details = [puppy.color, puppy.coatType, formatAnimalDate(puppy.dateOfBirth)]
+                .filter(Boolean)
+                .join(" · ");
+              return (
+                <li key={puppy.id} className="text-sm">
+                  <SiteLink href={`/our-dogs/${puppy.id}`} className="font-medium underline underline-offset-4">
+                    {puppy.name}
+                  </SiteLink>
+                  {details ? <span className="site-muted"> · {details}</span> : null}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+
+      {certificates.length > 0 && (
+        <div className="mt-6">
+          <h2 className="text-sm font-semibold">
+            {certificates.length === 1 ? "Health certificate" : "Health certificates"}
+          </h2>
+          <ul className="mt-2 space-y-2">
+            {certificates.map((certificate) => (
+              <li key={certificate.url}>
+                <a
+                  href={certificate.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-sm font-medium underline underline-offset-4 hover:opacity-80"
+                >
+                  {certificate.label}
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {healthTests.length > 0 && (
         <div className="mt-10">
@@ -94,5 +155,14 @@ export default async function AnimalDetailPage({
         </div>
       )}
     </div>
+  );
+}
+
+function ParentName({ parent }: { parent: { name: string; href: string | null } }) {
+  if (!parent.href) return parent.name;
+  return (
+    <SiteLink href={parent.href} className="font-medium underline underline-offset-4">
+      {parent.name}
+    </SiteLink>
   );
 }

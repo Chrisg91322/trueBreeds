@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("marketing homepage", () => {
-  test("renders the hero, pricing, and primary CTAs", async ({ page }) => {
+  test("renders the hero and a pricing inquiry CTA", async ({ page }) => {
     await page.goto("/");
 
     await expect(page).toHaveTitle(/TrueBreeds/i);
@@ -10,30 +10,37 @@ test.describe("marketing homepage", () => {
       /icon|favicon|logo2/i
     );
     await expect(
-      page.getByRole("heading", { name: /a premium website for your kennel/i })
+      page.getByRole("heading", { name: /built around the animal breeders community/i })
     ).toBeVisible();
 
-    await expect(page.getByRole("heading", { name: "Memberships that grow with your kennel" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Memberships that grow with your breeding program" })
+    ).toBeVisible();
     await expect(page.getByRole("heading", { name: "Basic" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Pro" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Premium" })).toBeVisible();
-    await expect(page.getByText("$297 one-time setup").first()).toBeVisible();
-    await expect(page.getByText("$49.99")).toBeVisible();
-    await expect(page.getByText("$69.99")).toBeVisible();
-    await expect(page.getByText("$99.99")).toBeVisible();
+    const inquire = page.getByRole("link", { name: "Ask about pricing" });
+    await expect(inquire.first()).toHaveAttribute("href", "#pricing");
+    for (const link of await inquire.all()) {
+      const href = await link.getAttribute("href");
+      expect(href === "#pricing" || href?.startsWith("/start")).toBeTruthy();
+    }
+    await expect(page.getByText("$49.99")).toHaveCount(0);
+    await expect(page.getByText("$69.99")).toHaveCount(0);
+    await expect(page.getByText("$99.99")).toHaveCount(0);
+    await expect(page.getByText("$297")).toHaveCount(0);
 
-    // Every "get started"-style CTA should route to signup.
-    const ctas = page.getByRole("link", { name: /start your site|get started/i });
+    const ctas = page.getByRole("link", { name: /get started/i });
     await expect(ctas.first()).toBeVisible();
     for (const cta of await ctas.all()) {
-      await expect(cta).toHaveAttribute("href", /\/signup/);
+      await expect(cta).toHaveAttribute("href", /\/start/);
     }
   });
 
-  test("navigates from the homepage to signup", async ({ page }) => {
+  test("navigates from the homepage to the contact form", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("link", { name: "Start your site" }).click();
-    await expect(page).toHaveURL(/\/signup$/);
+    await page.getByRole("link", { name: "Get started" }).first().click();
+    await expect(page).toHaveURL(/\/start$/);
   });
 });
 

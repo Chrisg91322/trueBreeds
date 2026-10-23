@@ -9,6 +9,7 @@ import { TestimonialCard } from "@/components/site/testimonial-card";
 import { Gallery } from "@/components/site/gallery";
 import { SiteLink } from "@/components/site/site-base-path";
 import { tenantSiteOrigin } from "@/lib/seo";
+import { tenantBrandMark } from "@/lib/site-icons";
 
 export const revalidate = 60;
 
@@ -81,6 +82,7 @@ export default async function TenantHomePage({
         kennelName={tenant.kennelName}
         tagline={tenant.tagline}
         heroImageUrl={tenant.heroImageUrl}
+        logoUrl={tenantBrandMark(tenant.logoUrl, tenant.faviconUrl)}
         availableCount={availableOffspring.length}
       />
 

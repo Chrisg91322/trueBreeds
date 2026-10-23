@@ -3,6 +3,7 @@ import { getPublicTenant } from "@/lib/site-data";
 import { SectionHeading } from "@/components/site/section-heading";
 import { OffspringCard } from "@/components/site/offspring-card";
 import { WaitlistForm } from "@/components/site/waitlist-form";
+import { youngAnimalLabel } from "@/lib/species";
 
 export const revalidate = 60;
 
@@ -21,7 +22,7 @@ export default async function AvailablePage({
     <div className="mx-auto max-w-6xl px-5 py-16 sm:px-8">
       <SectionHeading
         eyebrow="Available"
-        title="Available puppies & kittens"
+        title={`Available ${youngAnimalLabel(data.tenant.species, 2)}`}
         description={data.tenant.depositPolicy ?? "Browse current litters and reserve your favorite."}
       />
       {data.availableOffspring.length === 0 ? (

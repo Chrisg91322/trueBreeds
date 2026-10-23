@@ -2,6 +2,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button-variants";
+import { cn } from "@/lib/utils";
 import {
   Table,
   TableBody,
@@ -48,14 +50,19 @@ export default async function AdminTenantsPage({
           <h1 className="text-xl font-semibold">Tenants</h1>
           <p className="text-sm text-muted-foreground">{tenants.length} kennels on the platform.</p>
         </div>
-        <form className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href="/admin/tenants/new" className={cn(buttonVariants())}>
+            New website
+          </Link>
+          <form className="flex gap-2">
           <input
             name="q"
             defaultValue={q}
             placeholder="Search by name or slug…"
             className="h-9 w-64 rounded-md border bg-background px-3 text-sm"
           />
-        </form>
+          </form>
+        </div>
       </div>
 
       <Card>

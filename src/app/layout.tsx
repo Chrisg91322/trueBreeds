@@ -30,11 +30,11 @@ const origin = appOrigin();
 export const metadata: Metadata = {
   metadataBase: new URL(origin),
   title: {
-    default: "TrueBreeds — Professional websites for dog & cat breeders",
+    default: "TrueBreeds — The CRM for livestock, dog, and cat breeders",
     template: "%s · TrueBreeds",
   },
   description:
-    "Launch a professional kennel website in minutes. Manage litters, waitlists, deposits, and buyers from one dashboard built for dog and cat breeders.",
+    "A CRM for livestock, dog, and cat breeders. Inquiries, animals, and a website we set up and keep current — quick and easy setup.",
   keywords: [
     "breeder website",
     "kennel website builder",
@@ -49,16 +49,16 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: origin,
     siteName: "TrueBreeds",
-    title: "TrueBreeds — Professional websites for dog & cat breeders",
+    title: "TrueBreeds — The CRM for livestock, dog, and cat breeders",
     description:
-      "Launch a professional kennel website in minutes. Litters, waitlists, deposits, and growth tools in one place.",
+      "Inquiries, animals, and a website we set up and keep current. Quick and easy setup for livestock, dog, and cat breeders.",
     images: [{ url: "/branding/pupsAndKittens4.png", width: 1200, height: 630, alt: "TrueBreeds" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "TrueBreeds — Professional websites for dog & cat breeders",
+    title: "TrueBreeds — The CRM for livestock, dog, and cat breeders",
     description:
-      "Launch a professional kennel website in minutes. Litters, waitlists, deposits, and growth tools in one place.",
+      "Inquiries, animals, and a website we set up and keep current. Quick and easy setup for livestock, dog, and cat breeders.",
     images: ["/branding/pupsAndKittens4.png"],
   },
   robots: {

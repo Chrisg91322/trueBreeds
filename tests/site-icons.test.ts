@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { safePublicImageUrl, tenantSiteIcons } from "@/lib/site-icons";
+import { safePublicImageUrl, tenantBrandMark, tenantSiteIcons } from "@/lib/site-icons";
 
 describe("safePublicImageUrl", () => {
   it("accepts http(s) URLs", () => {
@@ -38,5 +38,17 @@ describe("tenantSiteIcons", () => {
 
   it("returns undefined so the platform favicon is inherited", () => {
     expect(tenantSiteIcons(null, null)).toBeUndefined();
+  });
+});
+
+describe("tenantBrandMark", () => {
+  it("prefers the logo, then the favicon", () => {
+    expect(
+      tenantBrandMark("https://cdn.example.com/logo.png", "https://cdn.example.com/favicon.png")
+    ).toBe("https://cdn.example.com/logo.png");
+    expect(tenantBrandMark(null, "https://cdn.example.com/favicon.png")).toBe(
+      "https://cdn.example.com/favicon.png"
+    );
+    expect(tenantBrandMark(null, null)).toBeNull();
   });
 });

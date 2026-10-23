@@ -23,6 +23,7 @@ export async function POST(req: NextRequest) {
       tenantId: session.tenantId,
       customerEmail: session.email,
       plan,
+      returnTo: body.returnTo === "billing" ? "billing" : "onboarding",
     });
 
     return NextResponse.json({ url: checkoutSession.url });

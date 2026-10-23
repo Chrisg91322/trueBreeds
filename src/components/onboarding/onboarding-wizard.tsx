@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -28,7 +28,21 @@ import {
 import { PricingCards } from "@/components/site/pricing-cards";
 import { ImageUploadField } from "@/components/dashboard/image-upload-field";
 import { PreviewSiteButton } from "@/components/onboarding/preview-site-button";
-import { formatPlanPrice, getPlan, isPlanTier, type PlanTier } from "@/lib/plans";
+import { submitMembershipRequest } from "@/lib/actions/membership-request";
+import {
+  MEMBERSHIP_TIMELINES,
+  SUPPORT_EMAIL,
+  type MembershipTimeline,
+} from "@/lib/membership-request";
+import { getPlan, isPlanTier, type PlanTier } from "@/lib/plans";
+import { isSpecies } from "@/lib/species";
+import { SpeciesSelect } from "@/components/dashboard/species-select";
+
+export type MembershipContactDefaults = {
+  name: string;
+  email: string;
+  phone: string;
+};
 
 const STEPS = [
   { key: "profile", label: "Kennel Profile" },
@@ -47,11 +61,13 @@ export function OnboardingWizard({
   progress,
   initialStep,
   initialPlan,
+  contact,
 }: {
   tenant: Tenant;
   progress: OnboardingProgress;
   initialStep?: string;
   initialPlan?: string;
+  contact: MembershipContactDefaults;
 }) {
   const firstIncomplete = STEPS.find((s) => !stepComplete(progress, s.key))?.key ?? "publish";
   const [step, setStep] = useState<StepKey>(
@@ -92,7 +108,14 @@ export function OnboardingWizard({
         )}
         {step === "stripe" && <StripeStep tenant={tenant} onDone={() => setStep("extras")} />}
         {step === "extras" && <ExtrasStep tenant={tenant} onDone={() => setStep("billing")} />}
-        {step === "billing" && <BillingStep initialPlan={initialPlan} billingComplete={progress.billingComplete} onDone={() => setStep("publish")} />}
+        {step === "billing" && (
+          <BillingStep
+            initialPlan={initialPlan}
+            billingComplete={progress.billingComplete}
+            contact={contact}
+            onDone={() => setStep("publish")}
+          />
+        )}
         {step === "publish" && (
           <PublishStep
             tenant={tenant}
@@ -120,21 +143,29 @@ function stepComplete(progress: OnboardingProgress, step: StepKey) {
 function BillingStep({
   initialPlan,
   billingComplete,
+  contact,
   onDone,
 }: {
   initialPlan?: string;
   billingComplete: boolean;
+  contact: MembershipContactDefaults;
   onDone: () => void;
 }) {
-  const [loading, setLoading] = useState(false);
   const [plan, setPlan] = useState<PlanTier>(isPlanTier(initialPlan) ? initialPlan : "pro");
+  const [showForm, setShowForm] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [timeline, setTimeline] = useState<MembershipTimeline | "">("");
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
 
   if (billingComplete) {
     return (
       <div className="space-y-4 text-center">
         <h2 className="text-lg font-semibold">Membership active</h2>
         <p className="text-sm text-muted-foreground">
-          You&apos;re subscribed. Preview your site, then publish so visitors can find you.
+          You&apos;re subscribed. A receipt with the price breakdown is on its way to your email,
+          including how to upgrade, downgrade, or cancel. Preview your site, then publish so
+          visitors can find you.
         </p>
         <div className="flex flex-wrap items-center justify-center gap-2">
           <PreviewSiteButton />
@@ -146,21 +177,28 @@ function BillingStep({
     );
   }
 
-  async function handlePay() {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/checkout/platform", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Checkout failed");
-      window.location.href = data.url;
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Something went wrong");
-      setLoading(false);
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    setError(null);
+    if (!timeline) {
+      setError("Choose how soon you want the site.");
+      return;
     }
+    startTransition(async () => {
+      const result = await submitMembershipRequest({
+        name: String(form.get("name") || ""),
+        email: String(form.get("email") || ""),
+        phone: String(form.get("phone") || ""),
+        plan,
+        timeline,
+      });
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setSent(true);
+    });
   }
 
   return (
@@ -168,17 +206,90 @@ function BillingStep({
       <div>
         <h2 className="text-lg font-semibold">Choose your membership</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          $297 one-time setup, then {formatPlanPrice(plan)}/month. Cancel any time from your billing settings.
+          Choose a plan, then send your contact details. We’ll follow up from {SUPPORT_EMAIL}. You
+          can still preview your site.
         </p>
       </div>
       <PricingCards selectedPlan={plan} onSelect={setPlan} />
-      <div className="flex flex-wrap items-center gap-2">
-        <Button onClick={handlePay} disabled={loading} size="lg">
-          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Continue with {getPlan(plan).name} ({formatPlanPrice(plan)}/mo + $297 setup)
-        </Button>
-        <PreviewSiteButton />
-      </div>
+      {sent ? (
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            We sent your {getPlan(plan).name} request to {SUPPORT_EMAIL}. We’ll follow up at the
+            email you entered.
+          </p>
+          <PreviewSiteButton />
+        </div>
+      ) : showForm ? (
+        <form className="space-y-4 rounded-xl border bg-background p-4" onSubmit={handleSubmit}>
+          <div>
+            <h3 className="font-medium">Contact Support</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              This stays on TrueBreeds. You’re requesting the {getPlan(plan).name} plan.
+            </p>
+          </div>
+          <div>
+            <Label htmlFor="support-name">Name</Label>
+            <Input id="support-name" name="name" required defaultValue={contact.name} className="mt-1.5" />
+          </div>
+          <div>
+            <Label htmlFor="support-email">Email</Label>
+            <Input
+              id="support-email"
+              name="email"
+              type="email"
+              required
+              defaultValue={contact.email}
+              className="mt-1.5"
+            />
+          </div>
+          <div>
+            <Label htmlFor="support-phone">Phone</Label>
+            <Input
+              id="support-phone"
+              name="phone"
+              type="tel"
+              required
+              defaultValue={contact.phone}
+              className="mt-1.5"
+            />
+          </div>
+          <fieldset>
+            <legend className="text-sm font-medium">How soon do you want the new website?</legend>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {MEMBERSHIP_TIMELINES.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => setTimeline(option.id)}
+                  className={cn(
+                    "rounded-full border px-3 py-1.5 text-sm",
+                    timeline === option.id
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "text-muted-foreground"
+                  )}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          <div className="flex flex-wrap items-center gap-2">
+            <Button type="submit" disabled={isPending}>
+              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Send request
+            </Button>
+            <PreviewSiteButton />
+          </div>
+        </form>
+      ) : (
+        <div className="flex flex-wrap items-center gap-2">
+          <Button size="lg" onClick={() => setShowForm(true)}>
+            Contact Support
+          </Button>
+          <PreviewSiteButton />
+        </div>
+      )}
     </div>
   );
 }
@@ -192,7 +303,12 @@ function ProfileStep({ tenant, onDone }: { tenant: Tenant; onDone: () => void })
     const form = new FormData(e.currentTarget);
     const kennelName = String(form.get("kennelName") || "");
     const slug = String(form.get("slug") || "");
-    const species = String(form.get("species") || "dog") as "dog" | "cat";
+    const speciesValue = String(form.get("species") || "dog");
+    if (!isSpecies(speciesValue)) {
+      toast.error("Choose dog, cat, or livestock.");
+      return;
+    }
+    const species = speciesValue;
     const breeds = String(form.get("breeds") || "")
       .split(",")
       .map((b) => b.trim())
@@ -226,13 +342,7 @@ function ProfileStep({ tenant, onDone }: { tenant: Tenant; onDone: () => void })
       </div>
       <div>
         <Label htmlFor="species">Species</Label>
-        <Select name="species" defaultValue={tenant.species}>
-          <SelectTrigger id="species" className="mt-1.5 w-full"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="dog">Dogs</SelectItem>
-            <SelectItem value="cat">Cats</SelectItem>
-          </SelectContent>
-        </Select>
+        <SpeciesSelect id="species" defaultValue={tenant.species} plural className="mt-1.5 w-full" />
       </div>
       <div>
         <Label htmlFor="breeds">Breed(s), comma-separated</Label>
@@ -248,22 +358,41 @@ function ProfileStep({ tenant, onDone }: { tenant: Tenant; onDone: () => void })
 
 function ThemeStep({ tenant, onDone }: { tenant: Tenant; onDone: () => void }) {
   const [preset, setPreset] = useState<ThemePresetKey>(tenant.themePreset);
+  const [accent, setAccent] = useState(
+    tenant.accentColor || THEME_PRESETS[tenant.themePreset].defaultAccent
+  );
   const [isPending, startTransition] = useTransition();
+  const [savingPreview, setSavingPreview] = useState(false);
   const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
+
+  function choosePreset(next: ThemePresetKey) {
+    setAccent((color) => {
+      const currentDefault = THEME_PRESETS[preset].defaultAccent.toLowerCase();
+      if (color.toLowerCase() === currentDefault) return THEME_PRESETS[next].defaultAccent;
+      return color;
+    });
+    setPreset(next);
+  }
+
+  function themePayload(form: HTMLFormElement) {
+    const data = new FormData(form);
+    return {
+      themePreset: preset,
+      accentColor: accent || THEME_PRESETS[preset].defaultAccent,
+      logoUrl: String(data.get("logoUrl") || "").trim() || null,
+      heroImageUrl: String(data.get("heroImageUrl") || "").trim() || null,
+      faviconUrl: String(data.get("faviconUrl") || "").trim() || null,
+      tagline: String(data.get("tagline") || "") || undefined,
+    };
+  }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const form = new FormData(e.currentTarget);
+    const payload = themePayload(e.currentTarget);
     startTransition(async () => {
       try {
-        await updateTenantTheme(tenant.id, {
-          themePreset: preset,
-          accentColor: String(form.get("accentColor") || THEME_PRESETS[preset].defaultAccent),
-          logoUrl: String(form.get("logoUrl") || "").trim() || null,
-          heroImageUrl: String(form.get("heroImageUrl") || "").trim() || null,
-          faviconUrl: String(form.get("faviconUrl") || "").trim() || null,
-          tagline: String(form.get("tagline") || "") || undefined,
-        });
+        await updateTenantTheme(tenant.id, payload);
         toast.success("Theme saved");
         router.refresh();
         onDone();
@@ -273,15 +402,33 @@ function ThemeStep({ tenant, onDone }: { tenant: Tenant; onDone: () => void }) {
     });
   }
 
+  async function saveBeforePreview() {
+    const form = formRef.current;
+    if (!form) return;
+    setSavingPreview(true);
+    try {
+      await updateTenantTheme(tenant.id, themePayload(form));
+      toast.success("Theme saved");
+      router.refresh();
+    } catch {
+      toast.error("Failed to save theme");
+      throw new Error("Failed to save theme");
+    } finally {
+      setSavingPreview(false);
+    }
+  }
+
+  const busy = isPending || savingPreview;
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
+    <form ref={formRef} onSubmit={handleSubmit} className="space-y-5">
       <h2 className="text-lg font-semibold">Pick a look</h2>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {Object.values(THEME_PRESETS).map((t) => (
           <button
             type="button"
             key={t.key}
-            onClick={() => setPreset(t.key)}
+            onClick={() => choosePreset(t.key)}
             className={cn(
               "rounded-xl border-2 p-3 text-left transition-colors",
               preset === t.key ? "border-primary" : "border-transparent bg-muted/50"
@@ -301,7 +448,8 @@ function ThemeStep({ tenant, onDone }: { tenant: Tenant; onDone: () => void }) {
           id="accentColor"
           name="accentColor"
           type="color"
-          defaultValue={tenant.accentColor || THEME_PRESETS[preset].defaultAccent}
+          value={accent}
+          onChange={(event) => setAccent(event.target.value)}
           className="mt-1.5 h-10 w-20 p-1"
         />
       </div>
@@ -348,14 +496,14 @@ function ThemeStep({ tenant, onDone }: { tenant: Tenant; onDone: () => void }) {
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <Button type="submit" disabled={isPending}>
+        <Button type="submit" disabled={busy}>
           {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Save & continue
         </Button>
-        <PreviewSiteButton />
+        <PreviewSiteButton disabled={busy} onBeforeOpen={saveBeforePreview} />
       </div>
       <p className="text-xs text-muted-foreground">
-        Save first if you just changed photos or colors — preview shows your last saved look.
+        Preview saves your colors, logo, and photos, then opens your site.
       </p>
     </form>
   );
@@ -536,15 +684,15 @@ function PublishStep({
   if (!billingComplete) {
     return (
       <div className="space-y-4 text-center">
-        <h2 className="text-lg font-semibold">Subscribe before publishing</h2>
+        <h2 className="text-lg font-semibold">Contact support before publishing</h2>
         <p className="text-sm text-muted-foreground">
-          Preview your site anytime. Choose a membership to unlock the public URL{" "}
+          Preview your site anytime. Contact support to start a membership and unlock{" "}
           <strong>{tenant.slug}.truebreeds.com</strong>.
         </p>
         <div className="flex flex-wrap items-center justify-center gap-2">
           <PreviewSiteButton />
           <Button onClick={onNeedBilling} size="lg">
-            Choose a membership
+            Contact support
           </Button>
         </div>
       </div>

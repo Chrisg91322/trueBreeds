@@ -10,16 +10,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { HealthCertificateField } from "@/components/dashboard/health-certificate-field";
 import { ImageUploadField } from "@/components/dashboard/image-upload-field";
+import { PuppiesField, type PuppyDraft } from "@/components/dashboard/puppies-field";
+import { SpeciesSelect } from "@/components/dashboard/species-select";
+import type { SpeciesId } from "@/lib/species";
 
 export function AnimalForm({
   action,
   animal,
   defaultSpecies,
+  puppies,
+  sireLink,
+  damLink,
 }: {
   action: (formData: FormData) => void;
   animal?: Animal;
-  defaultSpecies: "dog" | "cat";
+  defaultSpecies: SpeciesId;
+  puppies?: PuppyDraft[];
+  sireLink?: { name: string; href: string } | null;
+  damLink?: { name: string; href: string } | null;
 }) {
   return (
     <form action={action} className="max-w-2xl space-y-5">
@@ -28,13 +38,7 @@ export function AnimalForm({
           <Input id="name" name="name" defaultValue={animal?.name} required />
         </Field>
         <Field label="Species" htmlFor="species">
-          <Select name="species" defaultValue={animal?.species ?? defaultSpecies}>
-            <SelectTrigger id="species"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="dog">Dog</SelectItem>
-              <SelectItem value="cat">Cat</SelectItem>
-            </SelectContent>
-          </Select>
+          <SpeciesSelect id="species" defaultValue={animal?.species ?? defaultSpecies} />
         </Field>
         <Field label="Breed" htmlFor="breed">
           <Input id="breed" name="breed" defaultValue={animal?.breed ?? ""} />
@@ -59,6 +63,9 @@ export function AnimalForm({
         <Field label="Color" htmlFor="color">
           <Input id="color" name="color" defaultValue={animal?.color ?? ""} />
         </Field>
+        <Field label="Coat type" htmlFor="coatType">
+          <Input id="coatType" name="coatType" placeholder="Smooth, long, wire…" defaultValue={animal?.coatType ?? ""} />
+        </Field>
         <Field label="Weight (lbs)" htmlFor="weightLbs">
           <Input id="weightLbs" name="weightLbs" type="number" step="0.1" defaultValue={animal?.weightLbs ?? ""} />
         </Field>
@@ -72,13 +79,40 @@ export function AnimalForm({
       </Field>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Pedigree URL" htmlFor="pedigreeUrl">
-          <Input id="pedigreeUrl" name="pedigreeUrl" type="url" defaultValue={animal?.pedigreeUrl ?? ""} />
+        <Field
+          label="Sire"
+          htmlFor="sireName"
+          hint={
+            sireLink ? (
+              <a href={sireLink.href} target="_blank" rel="noopener noreferrer" className="underline underline-offset-4">
+                View {sireLink.name}&apos;s bio
+              </a>
+            ) : null
+          }
+        >
+          <Input id="sireName" name="sireName" defaultValue={animal?.sireName ?? ""} />
         </Field>
-        <Field label="Embark URL" htmlFor="embarkUrl">
-          <Input id="embarkUrl" name="embarkUrl" type="url" defaultValue={animal?.embarkUrl ?? ""} />
+        <Field
+          label="Dam"
+          htmlFor="damName"
+          hint={
+            damLink ? (
+              <a href={damLink.href} target="_blank" rel="noopener noreferrer" className="underline underline-offset-4">
+                View {damLink.name}&apos;s bio
+              </a>
+            ) : null
+          }
+        >
+          <Input id="damName" name="damName" defaultValue={animal?.damName ?? ""} />
         </Field>
       </div>
+      <p className="-mt-3 text-xs text-muted-foreground">
+        After you save, a sire or dam name links to that animal&apos;s bio when it matches someone in your kennel.
+      </p>
+
+      <PuppiesField defaultPuppies={puppies} />
+
+      <HealthCertificateField defaultValue={animal?.healthCertificates} />
 
       <div>
         <Label>Cover photo</Label>
@@ -134,16 +168,19 @@ export function AnimalForm({
 function Field({
   label,
   htmlFor,
+  hint,
   children,
 }: {
   label: string;
   htmlFor: string;
+  hint?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
     <div>
       <Label htmlFor={htmlFor}>{label}</Label>
       <div className="mt-1.5">{children}</div>
+      {hint ? <div className="mt-1.5 text-xs text-muted-foreground">{hint}</div> : null}
     </div>
   );
 }

@@ -8,6 +8,150 @@ import { prisma } from "@/lib/prisma";
 import { stripe } from "@/lib/stripe/client";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 import { PHOTOS_BUCKET } from "@/lib/storage";
+import { websiteCreateBlock, websiteSlugFromName } from "@/lib/admin-site";
+import { isPlanTier } from "@/lib/plans";
+import { isSpecies } from "@/lib/species";
+import { syncPremiumProvisioning } from "@/lib/entitlements";
+import { requestPasswordReset } from "@/lib/actions/password-reset";
+
+export type CreateWebsiteState = { error: string } | null;
+
+/**
+ * Creates a kennel, owner login, and manual membership, then opens that dashboard.
+ */
+export async function createWebsite(
+  _prev: CreateWebsiteState,
+  formData: FormData,
+): Promise<CreateWebsiteState> {
+  const admin = await requirePlatformAdmin();
+  const kennelName = String(formData.get("kennelName") || "").trim();
+  const ownerName = String(formData.get("ownerName") || "").trim();
+  const email = String(formData.get("email") || "").trim().toLowerCase();
+  const phone = String(formData.get("phone") || "").trim();
+  const planValue = String(formData.get("plan") || "");
+  const speciesValue = String(formData.get("species") || "");
+  const slug = websiteSlugFromName(String(formData.get("slug") || kennelName));
+  const sendLogin = formData.get("sendLogin") === "on";
+
+  if (!kennelName) return { error: "Enter a kennel name." };
+  if (!ownerName) return { error: "Enter the owner’s name." };
+  if (!email.includes("@")) return { error: "Enter a valid email." };
+  if (!phone) return { error: "Enter a phone number." };
+  if (!slug) return { error: "Enter a site address." };
+  if (!isPlanTier(planValue)) return { error: "Choose Basic, Pro, or Premium." };
+  if (!isSpecies(speciesValue)) return { error: "Choose dog, cat, or livestock." };
+
+  const [slugOwner, emailOwner] = await Promise.all([
+    prisma.tenant.findUnique({ where: { slug }, select: { id: true } }),
+    prisma.user.findUnique({ where: { email }, select: { id: true } }),
+  ]);
+  const blocked = websiteCreateBlock({
+    slugTaken: !!slugOwner,
+    emailTaken: !!emailOwner,
+  });
+  if (blocked) return { error: blocked };
+
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return { error: "Site creation is unavailable until the service role key is configured." };
+  }
+
+  const supabase = createSupabaseServiceRoleClient();
+  const { data: created, error: authError } = await supabase.auth.admin.createUser({
+    email,
+    email_confirm: true,
+    user_metadata: { full_name: ownerName },
+  });
+  if (authError || !created.user) {
+    const message = authError?.message.toLowerCase() ?? "";
+    if (message.includes("already") || message.includes("registered") || message.includes("exists")) {
+      return { error: "That email already has a login." };
+    }
+    console.error("admin create user failed", authError?.message);
+    return { error: "Couldn’t create the owner login. Try again." };
+  }
+
+  let tenantId: string;
+  try {
+    const tenant = await prisma.$transaction(async (tx) => {
+      await tx.user.create({
+        data: {
+          id: created.user.id,
+          email,
+          fullName: ownerName,
+          platformRole: "breeder_owner",
+        },
+      });
+      const createdTenant = await tx.tenant.create({
+        data: {
+          slug,
+          kennelName,
+          species: speciesValue,
+          status: "onboarding",
+          contactEmail: email,
+          contactPhone: phone,
+          members: { create: { userId: created.user.id, role: "owner" } },
+          onboarding: {
+            create: {
+              profileComplete: true,
+              billingComplete: true,
+              dashboardTourSeen: true,
+            },
+          },
+          subscription: {
+            create: {
+              plan: planValue,
+              status: "active",
+              setupFeePaid: true,
+            },
+          },
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          actorId: admin.userId,
+          tenantId: createdTenant.id,
+          action: "tenant.created",
+          metadata: { slug, plan: planValue, species: speciesValue },
+        },
+      });
+      return createdTenant;
+    });
+    tenantId = tenant.id;
+  } catch (err) {
+    await supabase.auth.admin.deleteUser(created.user.id);
+    console.error("admin create website failed", err);
+    const code = typeof err === "object" && err && "code" in err ? (err as { code?: string }).code : undefined;
+    if (code === "P2002") {
+      return { error: "That site address or email is already in use." };
+    }
+    return { error: "Couldn’t create the website. Try again." };
+  }
+
+  if (planValue === "premium") {
+    await syncPremiumProvisioning(tenantId, planValue);
+  }
+
+  if (sendLogin) {
+    const sent = await requestPasswordReset(email);
+    if (!sent.ok) console.error("owner login email failed", sent.error);
+  }
+
+  await startImpersonation(tenantId);
+  return null;
+}
+
+export async function sendOwnerLoginLink(formData: FormData) {
+  await requirePlatformAdmin();
+  const tenantId = String(formData.get("tenantId") || "");
+  const owner = await prisma.tenantMember.findFirst({
+    where: { tenantId, role: "owner" },
+    include: { user: true },
+    orderBy: { createdAt: "asc" },
+  });
+  if (!owner) redirect(`/admin/tenants/${tenantId}?login=missing`);
+  const result = await requestPasswordReset(owner.user.email);
+  redirect(`/admin/tenants/${tenantId}?login=${result.ok ? "sent" : "failed"}`);
+}
 
 export async function startImpersonation(tenantId: string) {
   await requirePlatformAdmin();

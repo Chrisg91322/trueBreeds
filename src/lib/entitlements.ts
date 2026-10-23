@@ -34,7 +34,8 @@ export async function provisionPremiumSeoAnalytics(tenantId: string) {
   const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
   if (!tenant) return;
 
-  const speciesLabel = tenant.species === "cat" ? "cats" : "dogs";
+  const speciesLabel =
+    tenant.species === "cat" ? "cats" : tenant.species === "livestock" ? "livestock" : "dogs";
   const breedLabel =
     tenant.breeds.length > 0 ? tenant.breeds.slice(0, 3).join(", ") : speciesLabel;
 
@@ -45,7 +46,7 @@ export async function provisionPremiumSeoAnalytics(tenantId: string) {
   const seoDescription =
     tenant.seoDescription?.trim() ||
     tenant.tagline?.trim() ||
-    `${tenant.kennelName} raises health-tested ${breedLabel}. See available puppies, past litters, and contact the kennel.`;
+    `${tenant.kennelName} raises health-tested ${breedLabel}. See available animals, past litters, and contact the breeder.`;
 
   await prisma.tenant.update({
     where: { id: tenantId },

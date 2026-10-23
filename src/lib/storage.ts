@@ -4,6 +4,7 @@ import { nanoid } from "nanoid";
 export const PHOTOS_BUCKET = "photos";
 
 const MAX_BYTES = 5 * 1024 * 1024;
+const DOCUMENT_MAX_BYTES = 10 * 1024 * 1024;
 const ALLOWED_TYPES = new Set([
   "image/jpeg",
   "image/png",
@@ -11,6 +12,13 @@ const ALLOWED_TYPES = new Set([
   "image/gif",
   "image/x-icon",
   "image/vnd.microsoft.icon",
+]);
+const DOCUMENT_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "application/pdf",
 ]);
 
 function supabaseProjectUrl(): string {
@@ -37,6 +45,16 @@ export function assertImageFile(file: File) {
   }
 }
 
+export function assertDocumentFile(file: File) {
+  const type = file.type || guessMimeFromName(file.name);
+  if (!DOCUMENT_TYPES.has(type) && !/\.pdf$/i.test(file.name)) {
+    throw new Error("Use a PDF, JPEG, PNG, WebP, or GIF.");
+  }
+  if (file.size > DOCUMENT_MAX_BYTES) {
+    throw new Error("Files must be 10 MB or smaller.");
+  }
+}
+
 function guessMimeFromName(name: string): string {
   const ext = name.split(".").pop()?.toLowerCase();
   switch (ext) {
@@ -51,6 +69,8 @@ function guessMimeFromName(name: string): string {
       return "image/gif";
     case "ico":
       return "image/x-icon";
+    case "pdf":
+      return "application/pdf";
     default:
       return "";
   }
@@ -58,7 +78,7 @@ function guessMimeFromName(name: string): string {
 
 function extensionFor(file: File): string {
   const fromName = file.name.split(".").pop()?.toLowerCase();
-  if (fromName && ["jpg", "jpeg", "png", "webp", "gif", "ico"].includes(fromName)) {
+  if (fromName && ["jpg", "jpeg", "png", "webp", "gif", "ico", "pdf"].includes(fromName)) {
     return fromName === "jpeg" ? "jpg" : fromName;
   }
   switch (file.type) {
@@ -71,19 +91,37 @@ function extensionFor(file: File): string {
     case "image/x-icon":
     case "image/vnd.microsoft.icon":
       return "ico";
+    case "application/pdf":
+      return "pdf";
     default:
       return "jpg";
   }
 }
 
-async function ensurePhotosBucket(supabase: SupabaseClient) {
+async function ensurePhotosBucket(supabase: SupabaseClient, documents = false) {
+  const allowedMimeTypes = documents ? [...DOCUMENT_TYPES, ...ALLOWED_TYPES] : [...ALLOWED_TYPES];
   const { data } = await supabase.storage.getBucket(PHOTOS_BUCKET);
-  if (data) return;
+  if (data) {
+    if (!documents) return;
+    const current = data.allowed_mime_types ?? [];
+    const missing = allowedMimeTypes.filter((type) => current.length > 0 && !current.includes(type));
+    const limit = data.file_size_limit ?? 0;
+    const needsLargerLimit = limit > 0 && limit < DOCUMENT_MAX_BYTES;
+    if (missing.length === 0 && !needsLargerLimit) return;
+
+    const { error } = await supabase.storage.updateBucket(PHOTOS_BUCKET, {
+      public: data.public,
+      fileSizeLimit: needsLargerLimit ? DOCUMENT_MAX_BYTES : limit || null,
+      allowedMimeTypes: current.length === 0 ? null : [...new Set([...current, ...allowedMimeTypes])],
+    });
+    if (error) throw new Error(error.message);
+    return;
+  }
 
   const { error } = await supabase.storage.createBucket(PHOTOS_BUCKET, {
     public: true,
-    fileSizeLimit: MAX_BYTES,
-    allowedMimeTypes: [...ALLOWED_TYPES],
+    fileSizeLimit: documents ? DOCUMENT_MAX_BYTES : MAX_BYTES,
+    allowedMimeTypes,
   });
   // Another request may have created it first.
   if (error && !/already exists/i.test(error.message)) {
@@ -99,13 +137,16 @@ export async function uploadTenantPhoto(args: {
   tenantId: string;
   folder: string;
   file: File;
+  kind?: "image" | "document";
 }): Promise<{ url: string; path: string }> {
-  assertImageFile(args.file);
+  const documents = args.kind === "document";
+  if (documents) assertDocumentFile(args.file);
+  else assertImageFile(args.file);
   const folder = args.folder.replace(/[^a-z0-9_-]/gi, "") || "misc";
   const path = `${args.tenantId}/${folder}/${nanoid()}.${extensionFor(args.file)}`;
 
   const supabase = storageAdmin();
-  await ensurePhotosBucket(supabase);
+  await ensurePhotosBucket(supabase, documents);
 
   const contentType =
     args.file.type || guessMimeFromName(args.file.name) || "application/octet-stream";

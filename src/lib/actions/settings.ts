@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateTenantSite } from "@/lib/revalidate-site";
 import { redirect } from "next/navigation";
 import { getSessionContext, requireTenantSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -8,12 +9,15 @@ import { hasPremiumGrowthTools } from "@/lib/entitlements";
 import { sendTeamInvite } from "@/lib/messenger/notifications";
 import type { ThemePresetKey } from "@/lib/theme";
 import type { TenantMemberRole } from "@prisma/client";
+import { isSpecies } from "@/lib/species";
 
 export async function updateGeneralSettings(formData: FormData) {
   const session = await requireTenantSession();
   const kennelName = String(formData.get("kennelName") || "").trim();
   const slug = String(formData.get("slug") || "").trim().toLowerCase();
-  const species = String(formData.get("species") || "dog") as "dog" | "cat";
+  const speciesValue = String(formData.get("species") || "dog");
+  if (!isSpecies(speciesValue)) throw new Error("Choose dog, cat, or livestock.");
+  const species = speciesValue;
   const breeds = String(formData.get("breeds") || "")
     .split(",")
     .map((b) => b.trim())
@@ -94,7 +98,7 @@ export async function updateThemeSettings(data: {
     create: { tenantId: session.tenantId, themeComplete: true },
   });
   revalidatePath("/dashboard/settings/theme");
-  revalidatePath(`/${session.tenantSlug}`);
+  revalidateTenantSite(session.tenantSlug);
 }
 
 export async function updateSeoSettings(data: {

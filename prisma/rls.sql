@@ -43,7 +43,7 @@ declare
   tenant_tables text[] := array[
     'tenant_members', 'tenant_invites', 'animals', 'litters', 'offspring',
     'media', 'leads', 'waitlist_entries', 'testimonials', 'faq_items',
-    'platform_subscriptions', 'stripe_connect_accounts', 'deposits',
+    'platform_subscriptions', 'billing_email_logs', 'stripe_connect_accounts', 'deposits',
     'balance_invoices', 'amazon_settings', 'affiliate_products',
     'affiliate_clicks', 'social_connections', 'social_posts',
     'analytics_events', 'onboarding_progress'

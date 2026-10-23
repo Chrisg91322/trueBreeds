@@ -5,6 +5,12 @@ import { prisma } from "@/lib/prisma";
 import { startGracePeriod, reactivateTenant, planFromStripeSubscription } from "@/lib/stripe/platform-billing";
 import { isPlanTier } from "@/lib/plans";
 import { syncPremiumProvisioning } from "@/lib/entitlements";
+import {
+  sendCheckoutSubscriptionReceipt,
+  sendInvoiceSubscriptionReceipt,
+  sendPaymentFailedNotice,
+  sendSubscriptionLifecycleNotices,
+} from "@/lib/billing/subscription-notices";
 
 export const runtime = "nodejs";
 
@@ -57,6 +63,7 @@ export async function POST(req: NextRequest) {
         if (plan === "premium") {
           await syncPremiumProvisioning(tenantId, plan);
         }
+        await sendCheckoutSubscriptionReceipt(session);
       }
       break;
     }
@@ -69,7 +76,15 @@ export async function POST(req: NextRequest) {
         const sub = await prisma.platformSubscription.findUnique({
           where: { stripeCustomerId: customerId },
         });
-        if (sub) await startGracePeriod(sub.tenantId);
+        if (sub) {
+          const gracePeriodEndsAt = await startGracePeriod(sub.tenantId);
+          await sendPaymentFailedNotice({
+            tenantId: sub.tenantId,
+            invoice,
+            plan: sub.plan,
+            gracePeriodEndsAt,
+          });
+        }
       }
       break;
     }
@@ -85,6 +100,7 @@ export async function POST(req: NextRequest) {
         if (sub && (sub.status === "grace_period" || sub.status === "past_due")) {
           await reactivateTenant(sub.tenantId);
         }
+        await sendInvoiceSubscriptionReceipt(invoice);
       }
       break;
     }
@@ -92,19 +108,28 @@ export async function POST(req: NextRequest) {
     case "customer.subscription.updated":
     case "customer.subscription.deleted": {
       const subscription = event.data.object as Stripe.Subscription;
-      const sub = await prisma.platformSubscription.findUnique({
-        where: { stripeSubscriptionId: subscription.id },
-      });
+      const customerId = stripeCustomerId(subscription.customer);
+      const sub =
+        (await prisma.platformSubscription.findUnique({
+          where: { stripeSubscriptionId: subscription.id },
+        })) ??
+        (customerId
+          ? await prisma.platformSubscription.findUnique({
+              where: { stripeCustomerId: customerId },
+            })
+          : null);
       if (sub) {
         const plan = planFromStripeSubscription(subscription);
+        const periodEnd = subscription.items.data[0]?.current_period_end
+          ? new Date(subscription.items.data[0].current_period_end * 1000)
+          : null;
         await prisma.platformSubscription.update({
           where: { tenantId: sub.tenantId },
           data: {
+            stripeSubscriptionId: subscription.id,
             cancelAtPeriodEnd: subscription.cancel_at_period_end,
             status: subscription.status === "canceled" ? "cancelled" : sub.status,
-            currentPeriodEnd: subscription.items.data[0]?.current_period_end
-              ? new Date(subscription.items.data[0].current_period_end * 1000)
-              : undefined,
+            currentPeriodEnd: periodEnd ?? undefined,
             stripePriceId: subscription.items.data[0]?.price?.id,
             ...(plan ? { plan } : {}),
           },
@@ -112,6 +137,17 @@ export async function POST(req: NextRequest) {
         if (plan === "premium") {
           await syncPremiumProvisioning(sub.tenantId, plan);
         }
+        await sendSubscriptionLifecycleNotices({
+          tenantId: sub.tenantId,
+          previousPlan: sub.plan,
+          nextPlan: plan,
+          previousCancelAtPeriodEnd: sub.cancelAtPeriodEnd,
+          cancelAtPeriodEnd: subscription.cancel_at_period_end,
+          status: subscription.status,
+          eventType: event.type,
+          periodEnd: periodEnd ?? sub.currentPeriodEnd,
+          stripeSubscriptionId: subscription.id,
+        });
       }
       break;
     }
@@ -121,4 +157,9 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ received: true });
+}
+
+function stripeCustomerId(customer: Stripe.Subscription["customer"]) {
+  if (!customer) return null;
+  return typeof customer === "string" ? customer : customer.id;
 }
